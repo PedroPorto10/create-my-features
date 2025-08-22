@@ -4,9 +4,11 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.provider.Settings;
 
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
+import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
 
@@ -43,16 +45,28 @@ public class BankNotificationsPlugin extends Plugin {
 	}
 
 	@PluginMethod
-	public void isEnabled(com.getcapacitor.PluginCall call) {
-		boolean enabled = android.provider.Settings.Secure.getString(
+	public void isEnabled(PluginCall call) {
+		boolean enabled = Settings.Secure.getString(
 			getContext().getContentResolver(),
 			"enabled_notification_listeners"
-		) != null && android.provider.Settings.Secure.getString(
+		) != null && Settings.Secure.getString(
 			getContext().getContentResolver(),
 			"enabled_notification_listeners"
 		).contains(getContext().getPackageName());
 		JSObject ret = new JSObject();
 		ret.put("enabled", enabled);
 		call.resolve(ret);
+	}
+
+	@PluginMethod
+	public void openSettings(PluginCall call) {
+		try {
+			Intent intent = new Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS);
+			intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+			getContext().startActivity(intent);
+			call.resolve();
+		} catch (Exception e) {
+			call.reject("Failed to open settings: " + e.getMessage());
+		}
 	}
 }

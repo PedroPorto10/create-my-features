@@ -12,6 +12,20 @@ export type BankNotificationEvent = {
 export interface BankNotificationsPlugin {
   addListener(eventName: 'bankNotification', listenerFunc: (ev: BankNotificationEvent) => void): Promise<{ remove: () => void }>;
   isEnabled(): Promise<{ enabled: boolean }>;
+  openSettings(): Promise<void>;
 }
 
-export const BankNotifications = registerPlugin<BankNotificationsPlugin>('BankNotifications');
+const plugin = registerPlugin<BankNotificationsPlugin>('BankNotifications');
+
+export const BankNotifications = {
+  addListener: plugin.addListener,
+  isEnabled: async (): Promise<boolean> => {
+    try {
+      const res = await plugin.isEnabled();
+      return !!res?.enabled;
+    } catch {
+      return false;
+    }
+  },
+  openSettings: () => plugin.openSettings(),
+};
