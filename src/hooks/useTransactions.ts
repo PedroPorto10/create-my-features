@@ -27,6 +27,39 @@ export const useTransactions = () => {
   const [transactions, setTransactions] = useState<Transaction[]>(loadStored());
   
   useEffect(() => {
+    // Drain any backlog captured while the app was closed
+    BankNotifications.drainBacklog()
+      .then((res) => {
+        const events = res?.events ?? [];
+        if (events.length === 0) return;
+        setTransactions((prev) => {
+          const toAdd: Transaction[] = events.map((ev) => ({
+            id: ev.id,
+            type: ev.type,
+            amount: Math.round((ev.amount || 0) * 100) / 100,
+            date: new Date(ev.date || Date.now()),
+            contact: ev.contact || 'Desconhecido',
+            description: ev.description
+          }));
+          const merged = [...toAdd, ...prev]
+            .reduce((acc, t) => {
+              // dedupe by id+date
+              const key = `${t.id}-${t.date.getTime()}`;
+              if (!(key in acc.map)) {
+                acc.map[key] = true;
+                acc.list.push(t);
+              }
+              return acc;
+            }, { map: {} as Record<string, boolean>, list: [] as Transaction[] })
+            .list
+            .sort((a, b) => b.date.getTime() - a.date.getTime());
+          persist(merged);
+          return merged;
+        });
+      })
+      .catch(() => {});
+
+    // Live updates while app is running
     const sub = BankNotifications.addListener((ev: BankNotificationEvent) => {
       const newTx: Transaction = {
         id: ev.id,

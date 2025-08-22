@@ -12,10 +12,30 @@ import java.util.List;
 
 public class BankNotificationListenerService extends NotificationListenerService {
 	public static final String ACTION_NEW_BANK_EVENT = "app.lovable.BANK_NOTIFICATION_EVENT";
+	private static final String QUEUE_PREF = "bank_events_queue";
+	private static final String QUEUE_KEY = "events";
+
+	@Override
+	public void onListenerConnected() {
+		super.onListenerConnected();
+		// Seed from active notifications
+		try {
+			StatusBarNotification[] actives = getActiveNotifications();
+			if (actives != null) {
+				for (StatusBarNotification sbn : actives) {
+					persistIfTransaction(sbn);
+				}
+			}
+		} catch (Throwable ignored) {}
+	}
 
 	@Override
 	public void onNotificationPosted(StatusBarNotification sbn) {
 		if (sbn == null) return;
+		persistIfTransaction(sbn);
+	}
+
+	private void persistIfTransaction(StatusBarNotification sbn) {
 		Notification notification = sbn.getNotification();
 		if (notification == null) return;
 		Bundle extras = notification.extras;
@@ -43,6 +63,11 @@ public class BankNotificationListenerService extends NotificationListenerService
 		BankTransaction tx = parseTransaction(title, content, sbn.getPackageName());
 		if (tx == null) return;
 
+		// stable key for dedupe
+		String eventKey = sbn.getPackageName() + ":" + sbn.getId() + ":" + sbn.getPostTime();
+		enqueueEvent(tx, eventKey);
+
+		// Also broadcast if app is running to update UI immediately
 		Intent intent = new Intent(ACTION_NEW_BANK_EVENT);
 		intent.putExtra("id", tx.id);
 		intent.putExtra("type", tx.type);
@@ -51,6 +76,29 @@ public class BankNotificationListenerService extends NotificationListenerService
 		intent.putExtra("contact", tx.contact);
 		intent.putExtra("description", tx.description);
 		sendBroadcast(intent);
+	}
+
+	private void enqueueEvent(BankTransaction tx, String eventKey) {
+		try {
+			android.content.SharedPreferences prefs = getSharedPreferences(QUEUE_PREF, MODE_PRIVATE);
+			String raw = prefs.getString(QUEUE_KEY, "[]");
+			org.json.JSONArray arr = new org.json.JSONArray(raw);
+			// dedupe by eventKey
+			for (int i = 0; i < arr.length(); i++) {
+				org.json.JSONObject o = arr.getJSONObject(i);
+				if (eventKey.equals(o.optString("eventKey"))) return;
+			}
+			org.json.JSONObject obj = new org.json.JSONObject();
+			obj.put("eventKey", eventKey);
+			obj.put("id", tx.id);
+			obj.put("type", tx.type);
+			obj.put("amount", tx.amount);
+			obj.put("date", tx.dateMs);
+			obj.put("contact", tx.contact);
+			obj.put("description", tx.description);
+			arr.put(obj);
+			prefs.edit().putString(QUEUE_KEY, arr.toString()).apply();
+		} catch (Throwable ignored) {}
 	}
 
 	private BankTransaction parseTransaction(String title, String content, String pkg) {
