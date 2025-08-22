@@ -47,9 +47,14 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-gray-50 dark:from-gray-900 dark:to-gray-950">
       {!notifEnabled && (
-        <div className="bg-yellow-100 text-yellow-900 px-4 py-3 text-sm">
-          Habilite o acesso às notificações para capturar transações do C6 Bank.
-          Vá em Configurações → Apps → Acesso a notificações → habilite para este app.
+        <div className="bg-yellow-100 text-yellow-900 px-4 py-3 text-sm flex items-center justify-between gap-2">
+          <span>
+            Habilite o acesso às notificações para capturar transações do C6 Bank.
+            Vá em Configurações → Apps → Acesso a notificações → habilite para este app.
+          </span>
+          <Button variant="secondary" onClick={() => BankNotifications.openSettings()}>
+            Abrir configurações
+          </Button>
         </div>
       )}
       <div className="max-w-4xl mx-auto">
