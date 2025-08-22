@@ -12,6 +12,16 @@ const config: CapacitorConfig = {
     SplashScreen: {
       launchShowDuration: 0
     }
+  },
+  android: {
+    buildOptions: {
+      keystorePath: undefined,
+      keystoreAlias: undefined,
+      keystoreAliasPassword: undefined,
+      keystorePassword: undefined,
+      releaseType: "APK",
+      signingType: "apksigner"
+    }
   }
 };
 
