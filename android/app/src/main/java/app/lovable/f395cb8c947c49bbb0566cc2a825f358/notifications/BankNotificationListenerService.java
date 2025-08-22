@@ -106,7 +106,7 @@ public class BankNotificationListenerService extends NotificationListenerService
 	}
 
 	private double extractAmountBRL(String text) {
-		java.util.regex.Pattern p = java.util.regex.Pattern.compile("R?\\$?\\s*([0-9]{1,3}(?:\\.[0-9]{3})*,[0-9]+,[0-9]{2})");
+		java.util.regex.Pattern p = java.util.regex.Pattern.compile("R?\\$?\\s*([0-9]{1,3}(?:\\.[0-9]{3})*,[0-9]{2}|[0-9]+,[0-9]{2})");
 		java.util.regex.Matcher m = p.matcher(text);
 		if (m.find()) {
 			String raw = m.group(1);

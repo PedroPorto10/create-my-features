@@ -35,7 +35,13 @@ public class BankNotificationsPlugin extends Plugin {
 				notifyListeners("bankNotification", payload);
 			}
 		};
-		ctx.registerReceiver(receiver, new IntentFilter(BankNotificationListenerService.ACTION_NEW_BANK_EVENT));
+		IntentFilter filter = new IntentFilter(BankNotificationListenerService.ACTION_NEW_BANK_EVENT);
+		try {
+			ctx.registerReceiver(receiver, filter, Context.RECEIVER_EXPORTED);
+		} catch (NoSuchMethodError e) {
+			// Fallback for older Android SDKs
+			ctx.registerReceiver(receiver, filter);
+		}
 	}
 
 	@Override
