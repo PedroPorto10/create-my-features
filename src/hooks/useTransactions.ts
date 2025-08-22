@@ -1,43 +1,51 @@
 import { useState, useEffect } from 'react';
 import { Transaction, MonthlyData } from '../types/transaction';
+import { BankNotifications, type BankNotificationEvent } from '../lib/bankNotifications';
 
-// Simulando dados do C6 Bank
-const generateMockTransactions = (): Transaction[] => {
-  const transactions: Transaction[] = [];
-  const contacts = ['João Silva', 'Maria Santos', 'Pedro Costa', 'Ana Lima', 'Carlos Oliveira', 'Fernanda Rocha'];
-  
-  // Últimos 5 meses incluindo atual
-  for (let monthOffset = 0; monthOffset < 5; monthOffset++) {
-    const date = new Date();
-    date.setMonth(date.getMonth() - monthOffset);
-    
-    // 10-15 transações por mês
-    const transactionsPerMonth = Math.floor(Math.random() * 6) + 10;
-    
-    for (let i = 0; i < transactionsPerMonth; i++) {
-      const transactionDate = new Date(date);
-      transactionDate.setDate(Math.floor(Math.random() * 28) + 1);
-      
-      transactions.push({
-        id: `${monthOffset}-${i}`,
-        type: Math.random() > 0.5 ? 'received' : 'sent',
-        amount: Math.floor(Math.random() * 2000) + 50,
-        date: transactionDate,
-        contact: contacts[Math.floor(Math.random() * contacts.length)],
-        description: Math.random() > 0.7 ? 'PIX' : undefined
-      });
-    }
+const STORAGE_KEY = 'transactions_v1';
+
+const loadStored = (): Transaction[] => {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return [];
+    const arr = JSON.parse(raw) as any[];
+    return arr.map((t) => ({
+      ...t,
+      date: new Date(t.date)
+    }));
+  } catch {
+    return [];
   }
-  
-  return transactions.sort((a, b) => b.date.getTime() - a.date.getTime());
+};
+
+const persist = (txs: Transaction[]) => {
+  const serializable = txs.map((t) => ({ ...t, date: t.date.toISOString() }));
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(serializable));
 };
 
 export const useTransactions = () => {
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [transactions, setTransactions] = useState<Transaction[]>(loadStored());
   
   useEffect(() => {
-    const mockData = generateMockTransactions();
-    setTransactions(mockData);
+    const sub = BankNotifications.addListener((ev: BankNotificationEvent) => {
+      const newTx: Transaction = {
+        id: ev.id,
+        type: ev.type,
+        amount: Math.round((ev.amount || 0) * 100) / 100,
+        date: new Date(ev.date || Date.now()),
+        contact: ev.contact || 'Desconhecido',
+        description: ev.description
+      };
+      setTransactions((prev) => {
+        const next = [newTx, ...prev].sort((a, b) => b.date.getTime() - a.date.getTime());
+        persist(next);
+        return next;
+      });
+    });
+
+    return () => {
+      try { (sub as any)?.remove?.(); } catch {}
+    };
   }, []);
   
   const getRecentTransactions = (limit: number = 10) => {
@@ -65,43 +73,27 @@ export const useTransactions = () => {
   const getMonthlyData = (): MonthlyData[] => {
     const monthlyData: { [key: string]: MonthlyData } = {};
     
-    // Últimos 4 meses + atual
-    for (let i = 4; i >= 0; i--) {
-      const date = new Date();
-      date.setMonth(date.getMonth() - i);
-      const monthKey = date.toISOString().substring(0, 7);
-      const monthName = date.toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' });
-      
-      monthlyData[monthKey] = {
-        month: monthName,
-        received: 0,
-        sent: 0
-      };
+    // Use range around existing transactions
+    const allDates = transactions.map(t => t.date.getTime());
+    const now = Date.now();
+    const minTime = allDates.length ? Math.min(...allDates) : now;
+    const months = new Set<string>();
+    const base = new Date(minTime);
+    base.setDate(1);
+    const cursor = new Date(base);
+    const end = new Date();
+    end.setMonth(end.getMonth() + 4);
+
+    while (cursor <= end) {
+      const monthKey = cursor.toISOString().substring(0, 7);
+      const monthName = cursor.toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' });
+      if (!months.has(monthKey)) {
+        months.add(monthKey);
+        monthlyData[monthKey] = { month: monthName, received: 0, sent: 0 };
+      }
+      cursor.setMonth(cursor.getMonth() + 1);
     }
     
-    // Previsão próximos 4 meses
-    for (let i = 1; i <= 4; i++) {
-      const date = new Date();
-      date.setMonth(date.getMonth() + i);
-      const monthKey = date.toISOString().substring(0, 7);
-      const monthName = date.toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' });
-      
-      // Simulando previsão baseada na média dos últimos meses
-      const avgReceived = transactions
-        .filter(t => t.type === 'received')
-        .reduce((sum, t) => sum + t.amount, 0) / 5;
-      const avgSent = transactions
-        .filter(t => t.type === 'sent')
-        .reduce((sum, t) => sum + t.amount, 0) / 5;
-      
-      monthlyData[monthKey] = {
-        month: monthName,
-        received: Math.floor(avgReceived * (0.8 + Math.random() * 0.4)),
-        sent: Math.floor(avgSent * (0.8 + Math.random() * 0.4))
-      };
-    }
-    
-    // Preencher com dados reais
     transactions.forEach(t => {
       const monthKey = t.date.toISOString().substring(0, 7);
       if (monthlyData[monthKey]) {

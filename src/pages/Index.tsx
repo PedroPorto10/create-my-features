@@ -4,14 +4,20 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useNavigate } from 'react-router-dom';
+import { BankNotifications } from '../lib/bankNotifications';
 
 const Index = () => {
   const navigate = useNavigate();
   const { getRecentTransactions } = useTransactions();
   const [recentTransactions, setRecentTransactions] = useState<any[]>([]);
+  const [notifEnabled, setNotifEnabled] = useState<boolean>(true);
   
   useEffect(() => {
     setRecentTransactions(getRecentTransactions(10));
+  }, []);
+
+  useEffect(() => {
+    BankNotifications.isEnabled().then(setNotifEnabled);
   }, []);
   
   const formatCurrency = (amount: number) => {
@@ -39,7 +45,13 @@ const Index = () => {
   };
   
   return (
-    <div className="min-h-screen bg-background p-4">
+    <div className="min-h-screen bg-gradient-to-b from-white to-gray-50 dark:from-gray-900 dark:to-gray-950">
+      {!notifEnabled && (
+        <div className="bg-yellow-100 text-yellow-900 px-4 py-3 text-sm">
+          Habilite o acesso às notificações para capturar transações do C6 Bank.
+          Vá em Configurações → Apps → Acesso a notificações → habilite para este app.
+        </div>
+      )}
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="mb-6">

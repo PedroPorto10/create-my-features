@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">create-my-features</string>
+    <string name="title_activity_main">create-my-features</string>
+    <string name="package_name">app.lovable.f395cb8c947c49bbb0566cc2a825f358</string>
+    <string name="custom_url_scheme">app.lovable.f395cb8c947c49bbb0566cc2a825f358</string>
+</resources>
