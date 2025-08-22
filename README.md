@@ -1,73 +1,94 @@
-# Welcome to your Lovable project
+# C6 Finance - App Financeiro Android
 
-## Project info
+App Android para organizar finanças do C6 Bank com dashboard, tabelas e gráficos de transferências.
 
-**URL**: https://lovable.dev/projects/f395cb8c-947c-49bb-b056-6cc2a825f358
+## 🚀 Funcionalidades
 
-## How can I edit this code?
+- **Dashboard Principal**: Visualize as últimas 10 transferências e saldo atual
+- **Tabelas Detalhadas**: Veja transferências recebidas e enviadas do mês atual
+- **Gráficos Analíticos**: Análise histórica de 4 meses + previsão de 4 meses
+- **Design Responsivo**: Interface moderna otimizada para mobile
 
-There are several ways of editing your application.
+## 📱 Como usar no Android
 
-**Use Lovable**
+### Passo 1: Transferir para GitHub
+1. Clique no botão "Export to Github" no Lovable
+2. Clone o projeto do seu repositório GitHub
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/f395cb8c-947c-49bb-b056-6cc2a825f358) and start prompting.
+### Passo 2: Configurar ambiente local
+```bash
+# Instalar dependências
+npm install
 
-Changes made via Lovable will be committed automatically to this repo.
+# Adicionar plataforma Android
+npx cap add android
 
-**Use your preferred IDE**
+# Atualizar dependências nativas
+npx cap update android
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+# Build do projeto
+npm run build
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+# Sincronizar com Android
+npx cap sync
+```
 
-Follow these steps:
+### Passo 3: Executar no dispositivo
+```bash
+# Executar no emulador/dispositivo Android
+npx cap run android
+```
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+## 🛠 Tecnologias Utilizadas
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+- React + TypeScript
+- Vite
+- Tailwind CSS
+- Capacitor (para Android)
+- Recharts (gráficos)
+- Shadcn/UI (componentes)
 
-# Step 3: Install the necessary dependencies.
-npm i
+## 📊 Estrutura do App
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+1. **Dashboard** (`/`): Tela inicial com resumo
+2. **Tabelas** (`/tables`): Transações do mês atual
+3. **Gráficos** (`/charts/:type`): Análise histórica e previsões
+
+## 🎨 Design System
+
+O app utiliza um design system moderno com:
+- Cores temáticas do C6 Bank (roxo/violeta)
+- Gradientes suaves
+- Sombras elegantes
+- Animações fluidas
+- Suporte a modo escuro
+
+## 📝 Simulação de Dados
+
+Como não temos acesso às notificações reais do C6 Bank, o app usa dados simulados que representam:
+- Transferências recebidas e enviadas
+- Valores aleatórios realistas
+- Datas dos últimos 5 meses
+- Previsões baseadas na média histórica
+
+## 🔧 Desenvolvimento
+
+Para executar em modo desenvolvimento:
+
+```bash
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+Para fazer build de produção:
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+```bash
+npm run build
+```
 
-**Use GitHub Codespaces**
+## 📱 Requisitos para Android
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+- Android Studio instalado
+- SDK Android configurado
+- Dispositivo Android ou emulador
 
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/f395cb8c-947c-49bb-b056-6cc2a825f358) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+Para mais informações sobre desenvolvimento mobile, consulte: [Lovable Mobile Development Guide](https://lovable.dev/blogs/TODO)
