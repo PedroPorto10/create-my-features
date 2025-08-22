@@ -13,6 +13,7 @@ export interface BankNotificationsPlugin {
   addListener(eventName: 'bankNotification', listenerFunc: (ev: BankNotificationEvent) => void): Promise<{ remove: () => void }>;
   isEnabled(): Promise<{ enabled: boolean }>;
   openSettings(): Promise<void>;
+  drainBacklog(): Promise<{ events: BankNotificationEvent[] }>;
 }
 
 const plugin = registerPlugin<BankNotificationsPlugin>('BankNotifications');
@@ -28,4 +29,5 @@ export const BankNotifications = {
     }
   },
   openSettings: () => plugin.openSettings(),
+  drainBacklog: () => plugin.drainBacklog(),
 };

@@ -75,4 +75,19 @@ public class BankNotificationsPlugin extends Plugin {
 			call.reject("Failed to open settings: " + e.getMessage());
 		}
 	}
+
+	@PluginMethod
+	public void drainBacklog(PluginCall call) {
+		try {
+			android.content.SharedPreferences prefs = getContext().getSharedPreferences("bank_events_queue", android.content.Context.MODE_PRIVATE);
+			String raw = prefs.getString("events", "[]");
+			// Clear after reading
+			prefs.edit().putString("events", "[]").apply();
+			JSObject ret = new JSObject();
+			ret.put("events", new org.json.JSONArray(raw));
+			call.resolve(ret);
+		} catch (Exception e) {
+			call.reject("Failed to drain backlog: " + e.getMessage());
+		}
+	}
 }
