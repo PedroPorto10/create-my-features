@@ -79,7 +79,7 @@ public class BankNotificationListenerService extends NotificationListenerService
 
 	private double extractAmountBRL(String text) {
 		// Look for patterns like R$ 123,45 or 123,45
-		java.util.regex.Matcher m = java.util.regex.Pattern.compile("R?\$?\s*([0-9]{1,3}(\.[0-9]{3})*,[0-9]{2}|[0-9]+,[0-9]{2})").matcher(text);
+		java.util.regex.Matcher m = java.util.regex.Pattern.compile("R?? *([0-9]{1,3}([0-9]{3})*,[0-9]{2}|[0-9]+,[0-9]{2})").matcher(text);
 		if (m.find()) {
 			String raw = m.group(1);
 			String normalized = raw.replace(".", "").replace(",", ".");
