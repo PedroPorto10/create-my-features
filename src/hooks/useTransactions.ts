@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Transaction, MonthlyData } from '../types/transaction';
-import { BankNotifications, type BankNotificationEvent } from '../lib/bankNotifications';
+import { BankAccessibility, type BankTransactionEvent } from '../lib/bankAccessibility';
 
 const STORAGE_KEY = 'transactions_v1';
 
@@ -28,7 +28,7 @@ export const useTransactions = () => {
   
   useEffect(() => {
     // Drain any backlog captured while the app was closed
-    BankNotifications.drainBacklog()
+    BankAccessibility.drainBacklog()
       .then((res) => {
         const events = res?.events ?? [];
         if (events.length === 0) return;
@@ -60,7 +60,7 @@ export const useTransactions = () => {
       .catch(() => {});
 
     // Live updates while app is running
-    const sub = BankNotifications.addListener((ev: BankNotificationEvent) => {
+    const sub = BankAccessibility.addListener((ev: BankTransactionEvent) => {
       const newTx: Transaction = {
         id: ev.id,
         type: ev.type,
