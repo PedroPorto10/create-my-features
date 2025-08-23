@@ -1,18 +1,25 @@
 import { useState, useEffect } from 'react';
-import { Table2, Wallet, TrendingUp, TrendingDown, DollarSign } from 'lucide-react';
+import { Table2, Wallet, TrendingUp, TrendingDown, DollarSign, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useNavigate } from 'react-router-dom';
 import { Transaction } from '../types/transaction';
+import { HybridBankNotifications } from '../lib/hybridBankNotifications';
 
 const Index = () => {
   const navigate = useNavigate();
   const { getRecentTransactions } = useTransactions();
   const [recentTransactions, setRecentTransactions] = useState<Transaction[]>([]);
+  const [serviceStatus, setServiceStatus] = useState({ enabled: false, notificationEnabled: false, accessibilityEnabled: false });
   
   useEffect(() => {
     setRecentTransactions(getRecentTransactions(10));
+    
+    // Check service status
+    HybridBankNotifications.isEnabled().then(status => {
+      setServiceStatus(status);
+    });
   }, [getRecentTransactions]);
   
   const formatCurrency = (amount: number) => {
@@ -136,7 +143,30 @@ const Index = () => {
                     <Wallet className="h-20 w-20 mx-auto opacity-50" />
                   </div>
                   <p className="mb-3 text-xl font-medium">Nenhuma transação encontrada</p>
-                  <p className="text-base">Faça uma transação PIX no C6 Bank para começar</p>
+                  <p className="text-base mb-6">Faça uma transação PIX no C6 Bank para começar</p>
+                  
+                  {!serviceStatus.enabled && (
+                    <div className="bg-blue-50 dark:bg-blue-900/20 p-6 rounded-2xl border border-blue-200 dark:border-blue-800">
+                      <Settings className="h-12 w-12 mx-auto mb-4 text-blue-600 dark:text-blue-400" />
+                      <p className="text-blue-800 dark:text-blue-200 font-medium mb-4">Configure os serviços para capturar transações</p>
+                      <div className="space-y-2">
+                        <Button 
+                          onClick={() => HybridBankNotifications.openNotificationSettings()}
+                          className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                          size="sm"
+                        >
+                          1. Habilitar Acesso a Notificações
+                        </Button>
+                        <Button 
+                          onClick={() => HybridBankNotifications.openAccessibilitySettings()}
+                          className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                          size="sm"
+                        >
+                          2. Habilitar Acessibilidade (backup)
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

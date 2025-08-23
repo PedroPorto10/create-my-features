@@ -155,11 +155,11 @@ public class BankNotificationListenerService extends NotificationListenerService
 		Log.d(TAG, String.format("Notification analysis - Package: %s, LooksPix: %b, HasAmount: %b, IsC6: %b", 
 			pkg, looksLikePix, hasAmount, isC6));
 		
-		// For debugging: temporarily accept any notification with PIX keyword regardless of package
+		// Accept ANY notification with PIX keywords and amount, regardless of package
 		if (looksLikePix && hasAmount) {
-			Log.d(TAG, "✓ Accepting PIX notification for debugging");
-		} else if (!isC6 || !(looksLikePix || hasAmount)) {
-			Log.d(TAG, "✗ Rejecting notification - not meeting criteria");
+			Log.d(TAG, "✓ Accepting PIX notification from: " + pkg);
+		} else {
+			Log.d(TAG, "✗ Rejecting notification - LooksPix: " + looksLikePix + ", HasAmount: " + hasAmount);
 			return null;
 		}
 
