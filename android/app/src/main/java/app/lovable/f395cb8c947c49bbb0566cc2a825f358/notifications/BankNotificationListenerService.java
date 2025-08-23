@@ -65,6 +65,11 @@ public class BankNotificationListenerService extends NotificationListenerService
 		if (notification == null) return;
 		Bundle extras = notification.extras;
 		if (extras == null) return;
+		
+		// Debug: Log all notifications to help identify the correct package
+		Log.d(TAG, "=== New Notification Debug ===");
+		Log.d(TAG, "Package: " + sbn.getPackageName());
+		Log.d(TAG, "App Name: " + sbn.getPackageName());
 
 		CharSequence titleCs = extras.getCharSequence(Notification.EXTRA_TITLE);
 		CharSequence textCs = extras.getCharSequence(Notification.EXTRA_TEXT);
@@ -74,6 +79,11 @@ public class BankNotificationListenerService extends NotificationListenerService
 		String title = titleCs != null ? titleCs.toString() : "";
 		String text = textCs != null ? textCs.toString() : "";
 		String bigText = bigTextCs != null ? bigTextCs.toString() : "";
+		
+		// Debug: Log notification content
+		Log.d(TAG, "Title: " + title);
+		Log.d(TAG, "Text: " + text);
+		Log.d(TAG, "BigText: " + bigText);
 
 		StringBuilder sb = new StringBuilder();
 		if (!TextUtils.isEmpty(bigText)) sb.append(bigText).append(' ');
@@ -145,8 +155,11 @@ public class BankNotificationListenerService extends NotificationListenerService
 		Log.d(TAG, String.format("Notification analysis - Package: %s, LooksPix: %b, HasAmount: %b, IsC6: %b", 
 			pkg, looksLikePix, hasAmount, isC6));
 		
-		// Accept if it's from a known bank AND (has financial keywords OR has amount)
-		if (!isC6 || !(looksLikePix || hasAmount)) {
+		// For debugging: temporarily accept any notification with PIX keyword regardless of package
+		if (looksLikePix && hasAmount) {
+			Log.d(TAG, "✓ Accepting PIX notification for debugging");
+		} else if (!isC6 || !(looksLikePix || hasAmount)) {
+			Log.d(TAG, "✗ Rejecting notification - not meeting criteria");
 			return null;
 		}
 
@@ -178,11 +191,15 @@ public class BankNotificationListenerService extends NotificationListenerService
 		if (pkg == null) pkg = "";
 		pkg = pkg.toLowerCase();
 		
-		// Enhanced C6 Bank package detection
+		// Debug: Always log package analysis
+		Log.d(TAG, "Analyzing package: " + pkg + ", title: " + title);
+		
+		// Enhanced C6 Bank package detection - be more permissive for testing
 		if (pkg.contains("c6bank") || pkg.equals("com.c6bank.app") || 
 			pkg.equals("com.c6bank") || pkg.contains("banco.c6") ||
-			pkg.contains("bancointer") || pkg.contains("inter")) {
-			Log.d(TAG, "Detected C6/Inter bank package: " + pkg);
+			pkg.contains("bancointer") || pkg.contains("inter") ||
+			pkg.contains("c6") || pkg.contains("bank")) {
+			Log.d(TAG, "✓ Detected bank package: " + pkg);
 			return true;
 		}
 		
@@ -191,11 +208,13 @@ public class BankNotificationListenerService extends NotificationListenerService
 			String tl = title.toLowerCase();
 			if (tl.contains("c6") || tl.contains("banco c6") || tl.contains("inter") ||
 				tl.contains("pix") || tl.contains("transferência") || tl.contains("transferencia")) {
-				Log.d(TAG, "Detected bank keywords in title: " + title);
+				Log.d(TAG, "✓ Detected bank keywords in title: " + title);
 				return true;
 			}
 		}
 		
+		// For debugging: Accept any notification with PIX in content during testing
+		Log.d(TAG, "✗ Not detected as bank notification");
 		return false;
 	}
 
@@ -210,14 +229,18 @@ public class BankNotificationListenerService extends NotificationListenerService
 		java.util.List<java.util.regex.Pattern> patterns = new java.util.ArrayList<>();
 		// Standard format: R$ 1.234,56
 		patterns.add(java.util.regex.Pattern.compile("R\\$\\s*([0-9]{1,3}(?:\\.[0-9]{3})*,[0-9]{2})"));
+		// Small amounts: R$ 0,01 to R$ 9,99
+		patterns.add(java.util.regex.Pattern.compile("R\\$\\s*([0-9],[0-9]{2})"));
 		// Without R$: 1.234,56
 		patterns.add(java.util.regex.Pattern.compile("([0-9]{1,3}(?:\\.[0-9]{3})*,[0-9]{2})"));
 		// Simple format: R$ 123,45 or 123,45
 		patterns.add(java.util.regex.Pattern.compile("R?\\$?\\s*([0-9]+,[0-9]{2})"));
-		// Alternative format: R$ 0,01
+		// Alternative format: R$ 0,01 (explicit small amounts)
 		patterns.add(java.util.regex.Pattern.compile("R\\$\\s*([0-9]+,[0-9]{1,2})"));
 		// International format: R$ 1,234.56 (sometimes used)
 		patterns.add(java.util.regex.Pattern.compile("R\\$\\s*([0-9]{1,3}(?:,[0-9]{3})*\\.[0-9]{2})"));
+		// "valor de" pattern: "valor de R$ 0,01"
+		patterns.add(java.util.regex.Pattern.compile("valor de R\\$\\s*([0-9]+,[0-9]{2})"));
 		
 		for (java.util.regex.Pattern p : patterns) {
 			java.util.regex.Matcher m = p.matcher(text);
