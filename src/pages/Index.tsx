@@ -1,29 +1,19 @@
 import { useState, useEffect } from 'react';
-import { ArrowLeft, Table2, Wallet, TrendingUp, TrendingDown, DollarSign } from 'lucide-react';
+import { Table2, Wallet, TrendingUp, TrendingDown, DollarSign } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useNavigate } from 'react-router-dom';
-import { BankNotifications } from '../lib/bankNotifications';
+import { Transaction } from '../types/transaction';
 
 const Index = () => {
   const navigate = useNavigate();
   const { getRecentTransactions } = useTransactions();
-  const [recentTransactions, setRecentTransactions] = useState<any[]>([]);
-  const [notifEnabled, setNotifEnabled] = useState<boolean>(true);
-  const [batteryOptimized, setBatteryOptimized] = useState<boolean>(false);
+  const [recentTransactions, setRecentTransactions] = useState<Transaction[]>([]);
   
   useEffect(() => {
     setRecentTransactions(getRecentTransactions(10));
-  }, []);
-
-  useEffect(() => {
-    // Check both notification permission and battery optimization
-    BankNotifications.isEnabledExtended().then(status => {
-      setNotifEnabled(status.enabled);
-      setBatteryOptimized(status.batteryOptimized);
-    });
-  }, []);
+  }, [getRecentTransactions]);
   
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -50,49 +40,27 @@ const Index = () => {
   };
   
   return (
-    <div className="min-h-screen bg-gradient-to-b from-white to-gray-50 dark:from-gray-900 dark:to-gray-950">
-      {!notifEnabled && (
-        <div className="bg-yellow-100 text-yellow-900 px-4 py-3 text-sm flex items-center justify-between gap-2">
-          <span>
-            Habilite o acesso às notificações para capturar transações do C6 Bank.
-            Vá em Configurações → Apps → Acesso a notificações → habilite para este app.
-          </span>
-          <Button variant="secondary" onClick={() => BankNotifications.openSettings()}>
-            Abrir configurações
-          </Button>
-        </div>
-      )}
-      {notifEnabled && batteryOptimized && (
-        <div className="bg-orange-100 text-orange-900 px-4 py-3 text-sm flex items-center justify-between gap-2">
-          <span>
-            Para capturar notificações em segundo plano, desative a otimização de bateria para este app.
-            Isso permite que o app continue funcionando mesmo quando não está aberto.
-          </span>
-          <Button variant="secondary" onClick={() => BankNotifications.requestBatteryOptimization()}>
-            Configurar bateria
-          </Button>
-        </div>
-      )}
-      <div className="max-w-4xl mx-auto">
+    <div className="min-h-screen bg-gradient-to-b from-white to-gray-50 dark:from-gray-900 dark:to-gray-950 px-4 py-6">
+      <div className="max-w-md mx-auto">
         {/* Header */}
-        <div className="mb-6">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-8 h-8 bg-gradient-primary rounded-lg flex items-center justify-center">
-              <Wallet className="h-5 w-5 text-primary-foreground" />
+        <div className="mb-8">
+          <div className="flex items-center gap-4 mb-2">
+            <div className="w-12 h-12 bg-gradient-primary rounded-2xl flex items-center justify-center shadow-lg">
+              <Wallet className="h-7 w-7 text-primary-foreground" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-foreground">C6 Finance</h1>
-              <p className="text-muted-foreground">Organize suas finanças</p>
+              <h1 className="text-3xl font-bold text-foreground">C6 Finance</h1>
+              <p className="text-muted-foreground text-lg">Organize suas finanças</p>
             </div>
           </div>
         </div>
         
         {/* Balance Card */}
-        <Card className="bg-gradient-primary shadow-button mb-6">
-          <CardContent className="p-6">
+        <Card className="bg-gradient-primary shadow-xl mb-8 rounded-2xl">
+          <CardContent className="p-8">
             <div className="text-center">
-              <p className="text-primary-foreground/80 text-sm mb-1">Saldo das Últimas Transações</p>
-              <p className="text-3xl font-bold text-primary-foreground">
+              <p className="text-primary-foreground/80 text-base mb-2">Saldo das Últimas Transações</p>
+              <p className="text-4xl font-bold text-primary-foreground">
                 {formatCurrency(getTotalBalance())}
               </p>
             </div>
@@ -100,58 +68,62 @@ const Index = () => {
         </Card>
         
         {/* Quick Actions */}
-        <div className="grid grid-cols-1 gap-4 mb-6">
+        <div className="grid grid-cols-1 gap-4 mb-8">
           <Button
             onClick={() => navigate('/tables')}
-            className="h-16 bg-gradient-card text-card-foreground hover:shadow-soft border border-border"
+            className="h-20 bg-gradient-card text-card-foreground hover:shadow-xl border border-border rounded-2xl transition-all duration-200"
             variant="ghost"
           >
-            <div className="flex items-center gap-3">
-              <Table2 className="h-6 w-6 text-primary" />
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-primary/10 rounded-xl">
+                <Table2 className="h-7 w-7 text-primary" />
+              </div>
               <div className="text-left">
-                <p className="font-semibold">Ver Tabelas Detalhadas</p>
-                <p className="text-sm text-muted-foreground">Transações do mês atual</p>
+                <p className="font-semibold text-lg">Ver Tabelas Detalhadas</p>
+                <p className="text-base text-muted-foreground">Transações do mês atual</p>
               </div>
             </div>
           </Button>
         </div>
         
         {/* Recent Transactions */}
-        <Card className="bg-gradient-card shadow-card">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <DollarSign className="h-5 w-5 text-primary" />
+        <Card className="bg-gradient-card shadow-xl rounded-2xl">
+          <CardHeader className="pb-4">
+            <CardTitle className="flex items-center gap-3 text-xl">
+              <DollarSign className="h-6 w-6 text-primary" />
               Últimas 10 Transações
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-3 max-h-96 overflow-y-auto">
+          <CardContent className="px-6 pb-6">
+            <div className="space-y-4 max-h-[60vh] overflow-y-auto">
               {recentTransactions.map((transaction) => (
                 <div
                   key={transaction.id}
-                  className="flex justify-between items-center p-3 bg-muted/30 rounded-lg hover:bg-muted/50 transition-colors"
+                  className="flex justify-between items-center p-4 bg-muted/20 rounded-2xl hover:bg-muted/40 transition-colors"
                 >
-                  <div className="flex items-center gap-3">
-                    <div className={`p-2 rounded-lg ${
+                  <div className="flex items-center gap-4">
+                    <div className={`p-3 rounded-2xl shadow-sm ${
                       transaction.type === 'received' 
-                        ? 'bg-success-light text-success' 
-                        : 'bg-warning-light text-expense'
+                        ? 'bg-green-100 text-green-600 dark:bg-green-900/20 dark:text-green-400' 
+                        : 'bg-red-100 text-red-600 dark:bg-red-900/20 dark:text-red-400'
                     }`}>
                       {transaction.type === 'received' 
-                        ? <TrendingUp className="h-4 w-4" />
-                        : <TrendingDown className="h-4 w-4" />
+                        ? <TrendingUp className="h-5 w-5" />
+                        : <TrendingDown className="h-5 w-5" />
                       }
                     </div>
-                    <div>
-                      <p className="font-medium text-foreground">{transaction.contact}</p>
-                      <p className="text-sm text-muted-foreground">
+                    <div className="min-w-0 flex-1">
+                      <p className="font-semibold text-foreground text-base truncate">{transaction.contact}</p>
+                      <p className="text-muted-foreground text-sm">
                         {formatDate(transaction.date)}
                       </p>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <p className={`font-bold ${
-                      transaction.type === 'received' ? 'text-success' : 'text-expense'
+                  <div className="text-right ml-4">
+                    <p className={`font-bold text-lg ${
+                      transaction.type === 'received' 
+                        ? 'text-green-600 dark:text-green-400' 
+                        : 'text-red-600 dark:text-red-400'
                     }`}>
                       {transaction.type === 'received' ? '+' : '-'} {formatCurrency(transaction.amount)}
                     </p>
@@ -159,15 +131,12 @@ const Index = () => {
                 </div>
               ))}
               {recentTransactions.length === 0 && (
-                <div className="text-center py-8 text-muted-foreground">
-                  <Wallet className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                  <p className="mb-2">Nenhuma transação encontrada</p>
-                  {!notifEnabled && (
-                    <p className="text-sm">Configure o acesso às notificações para começar</p>
-                  )}
-                  {notifEnabled && (
-                    <p className="text-sm">Faça uma transação PIX no C6 Bank para testar</p>
-                  )}
+                <div className="text-center py-16 text-muted-foreground">
+                  <div className="p-6 bg-muted/10 rounded-3xl inline-block mb-6">
+                    <Wallet className="h-20 w-20 mx-auto opacity-50" />
+                  </div>
+                  <p className="mb-3 text-xl font-medium">Nenhuma transação encontrada</p>
+                  <p className="text-base">Faça uma transação PIX no C6 Bank para começar</p>
                 </div>
               )}
             </div>
