@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Table2, Wallet, TrendingUp, TrendingDown, DollarSign, Settings } from 'lucide-react';
+import { Table2, Wallet, TrendingUp, TrendingDown, DollarSign, Settings, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useTransactions } from '@/hooks/useTransactions';
@@ -46,6 +46,25 @@ const Index = () => {
     }, 0);
   };
   
+  const addTestTransaction = (type: 'received' | 'sent') => {
+    const testTransaction: Transaction = {
+      id: `test-${Date.now()}`,
+      type,
+      amount: type === 'received' ? 50.00 : 25.00,
+      date: new Date(),
+      contact: type === 'received' ? 'JOÃO DA SILVA TESTE' : 'MARIA SANTOS TESTE',
+      description: type === 'received' ? 'PIX Recebido (TESTE)' : 'PIX Enviado (TESTE)'
+    };
+    
+    setRecentTransactions(prev => {
+      const updated = [testTransaction, ...prev].sort((a, b) => b.date.getTime() - a.date.getTime());
+      // Also persist to localStorage
+      const serializable = updated.map((t) => ({ ...t, date: t.date.toISOString() }));
+      localStorage.setItem('transactions_v1', JSON.stringify(serializable));
+      return updated;
+    });
+  };
+  
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-gray-50 dark:from-gray-900 dark:to-gray-950 px-4 py-6">
       <div className="max-w-md mx-auto">
@@ -89,6 +108,31 @@ const Index = () => {
                 <p className="font-semibold text-lg">Ver Tabelas Detalhadas</p>
                 <p className="text-base text-muted-foreground">Transações do mês atual</p>
               </div>
+            </div>
+          </Button>
+        </div>
+        
+        {/* Test Buttons - Debug */}
+        <div className="grid grid-cols-2 gap-3 mb-8">
+          <Button
+            onClick={() => addTestTransaction('received')}
+            className="h-16 bg-green-100 hover:bg-green-200 text-green-800 border border-green-300 rounded-xl transition-all duration-200"
+            variant="ghost"
+          >
+            <div className="flex flex-col items-center gap-1">
+              <Plus className="h-5 w-5" />
+              <span className="text-sm font-medium">Teste Recebido</span>
+            </div>
+          </Button>
+          
+          <Button
+            onClick={() => addTestTransaction('sent')}
+            className="h-16 bg-red-100 hover:bg-red-200 text-red-800 border border-red-300 rounded-xl transition-all duration-200"
+            variant="ghost"
+          >
+            <div className="flex flex-col items-center gap-1">
+              <Plus className="h-5 w-5" />
+              <span className="text-sm font-medium">Teste Enviado</span>
             </div>
           </Button>
         </div>
