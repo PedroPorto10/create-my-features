@@ -11,13 +11,18 @@ const Index = () => {
   const { getRecentTransactions } = useTransactions();
   const [recentTransactions, setRecentTransactions] = useState<any[]>([]);
   const [notifEnabled, setNotifEnabled] = useState<boolean>(true);
+  const [batteryOptimized, setBatteryOptimized] = useState<boolean>(false);
   
   useEffect(() => {
     setRecentTransactions(getRecentTransactions(10));
   }, []);
 
   useEffect(() => {
-    BankNotifications.isEnabled().then(setNotifEnabled);
+    // Check both notification permission and battery optimization
+    BankNotifications.isEnabledExtended().then(status => {
+      setNotifEnabled(status.enabled);
+      setBatteryOptimized(status.batteryOptimized);
+    });
   }, []);
   
   const formatCurrency = (amount: number) => {
@@ -54,6 +59,17 @@ const Index = () => {
           </span>
           <Button variant="secondary" onClick={() => BankNotifications.openSettings()}>
             Abrir configurações
+          </Button>
+        </div>
+      )}
+      {notifEnabled && batteryOptimized && (
+        <div className="bg-orange-100 text-orange-900 px-4 py-3 text-sm flex items-center justify-between gap-2">
+          <span>
+            Para capturar notificações em segundo plano, desative a otimização de bateria para este app.
+            Isso permite que o app continue funcionando mesmo quando não está aberto.
+          </span>
+          <Button variant="secondary" onClick={() => BankNotifications.requestBatteryOptimization()}>
+            Configurar bateria
           </Button>
         </div>
       )}
@@ -145,7 +161,13 @@ const Index = () => {
               {recentTransactions.length === 0 && (
                 <div className="text-center py-8 text-muted-foreground">
                   <Wallet className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                  <p>Nenhuma transação encontrada</p>
+                  <p className="mb-2">Nenhuma transação encontrada</p>
+                  {!notifEnabled && (
+                    <p className="text-sm">Configure o acesso às notificações para começar</p>
+                  )}
+                  {notifEnabled && (
+                    <p className="text-sm">Faça uma transação PIX no C6 Bank para testar</p>
+                  )}
                 </div>
               )}
             </div>
