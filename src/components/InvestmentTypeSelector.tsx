@@ -105,7 +105,7 @@ export const InvestmentTypeSelector = ({
         )}
 
         {/* Risk Filter */}
-        <div className="flex gap-2 mb-4">
+        <div className="grid grid-cols-2 gap-2 mb-4">
           <Button
             variant={selectedRiskFilter === 'all' ? 'default' : 'outline'}
             size="sm"
@@ -119,8 +119,8 @@ export const InvestmentTypeSelector = ({
             onClick={() => setSelectedRiskFilter('low')}
             className="text-green-600 hover:text-green-700"
           >
-            <Shield className="h-4 w-4 mr-1" />
-            Baixo Risco
+            <Shield className="h-3 w-3 mr-1" />
+            Baixo
           </Button>
           <Button
             variant={selectedRiskFilter === 'medium' ? 'default' : 'outline'}
@@ -128,7 +128,7 @@ export const InvestmentTypeSelector = ({
             onClick={() => setSelectedRiskFilter('medium')}
             className="text-yellow-600 hover:text-yellow-700"
           >
-            Risco Médio
+            Médio
           </Button>
           <Button
             variant={selectedRiskFilter === 'high' ? 'default' : 'outline'}
@@ -136,7 +136,7 @@ export const InvestmentTypeSelector = ({
             onClick={() => setSelectedRiskFilter('high')}
             className="text-red-600 hover:text-red-700"
           >
-            Alto Risco
+            Alto
           </Button>
         </div>
 
@@ -185,21 +185,21 @@ export const InvestmentTypeSelector = ({
                   {type.description}
                 </p>
 
-                <div className="grid grid-cols-3 gap-4 text-xs">
+                <div className="grid grid-cols-2 gap-3 text-xs">
                   <div>
                     <p className="font-medium text-muted-foreground mb-1">Retorno</p>
-                    <p className="text-foreground">{type.expectedReturn}</p>
+                    <p className="text-foreground text-xs">{type.expectedReturn}</p>
                   </div>
                   <div>
                     <p className="font-medium text-muted-foreground mb-1">Min. Inicial</p>
-                    <p className="text-foreground">
+                    <p className="text-foreground text-xs">
                       R$ {type.minAmount.toLocaleString('pt-BR')}
                     </p>
                   </div>
-                  <div>
-                    <p className="font-medium text-muted-foreground mb-1">Liquidez</p>
-                    <p className="text-foreground">{type.liquidity}</p>
-                  </div>
+                </div>
+                <div className="mt-2 text-xs">
+                  <p className="font-medium text-muted-foreground mb-1">Liquidez</p>
+                  <p className="text-foreground text-xs">{type.liquidity}</p>
                 </div>
               </CardContent>
             </Card>

@@ -70,12 +70,12 @@ export const InvestmentInstructions = ({ investmentTypeId }: InvestmentInstructi
               <div className="flex items-center gap-2">
                 Como investir em {investmentType.name}
                 {investmentType.c6BankAvailable ? (
-                  <Badge className="bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">
+                  <Badge variant="outline">
                     <CheckCircle2 className="h-3 w-3 mr-1" />
                     Disponível no C6
                   </Badge>
                 ) : (
-                  <Badge variant="destructive">
+                  <Badge variant="outline">
                     Não disponível no C6
                   </Badge>
                 )}
@@ -149,14 +149,6 @@ export const InvestmentInstructions = ({ investmentTypeId }: InvestmentInstructi
           <Button variant="outline" onClick={() => setIsOpen(false)}>
             Fechar
           </Button>
-          {investmentType.c6BankAvailable && (
-            <Button onClick={() => {
-              // This would open C6 Bank app if available, for now just show an alert
-              alert('Abrindo C6 Bank... (Esta funcionalidade seria integrada com o app do banco)');
-            }}>
-              Abrir C6 Bank
-            </Button>
-          )}
         </div>
       </DialogContent>
     </Dialog>

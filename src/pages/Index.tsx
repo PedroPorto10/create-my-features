@@ -77,7 +77,14 @@ const Index = () => {
   };
 
   const handleInvestmentTypeSelect = (type: InvestmentType) => {
-    setSelectedInvestmentType(type.name);
+    setSelectedInvestmentType(type.id);
+    // Update the insight with the selected type
+    if (investmentInsight) {
+      setInvestmentInsight({
+        ...investmentInsight,
+        customInvestmentType: type.id
+      });
+    }
   };
   
   // Permission dialog removed - always show main app
@@ -116,28 +123,6 @@ const Index = () => {
             </div>
           </Button>
         </div>
-
-        {/* Investment Customization */}
-        {transactions.length > 0 && (
-          <Card className="bg-gradient-card shadow-xl mb-6 rounded-2xl">
-            <CardContent className="p-6">
-              <div className="mb-4">
-                <h3 className="font-semibold text-card-foreground mb-2 flex items-center gap-2">
-                  <Settings className="h-5 w-5" />
-                  Personalize seus investimentos
-                </h3>
-                <p className="text-muted-foreground text-sm mb-4">
-                  Escolha o tipo de investimento que mais se adequa ao seu perfil
-                </p>
-                <InvestmentTypeSelector
-                  selectedType={investmentInsight?.customInvestmentType || ''}
-                  aiRecommendedType={investmentInsight?.recommendedInvestmentId}
-                  onSelect={handleInvestmentTypeSelect}
-                />
-              </div>
-            </CardContent>
-          </Card>
-        )}
 
         {/* AI Investment Insights */}
         <Card className="bg-gradient-primary shadow-xl mb-8 rounded-2xl">
@@ -204,6 +189,35 @@ const Index = () => {
             )}
           </CardContent>
         </Card>
+
+        {/* Investment Customization */}
+        {transactions.length > 0 && (
+          <Card className="bg-gradient-card shadow-xl mb-8 rounded-2xl">
+            <CardContent className="p-6">
+              <div className="mb-4">
+                <h3 className="font-semibold text-card-foreground mb-2 flex items-center gap-2">
+                  <Settings className="h-5 w-5" />
+                  Personalize seus investimentos
+                </h3>
+                <p className="text-muted-foreground text-sm mb-4">
+                  Escolha o tipo de investimento que mais se adequa ao seu perfil
+                </p>
+                <InvestmentTypeSelector
+                  selectedType={investmentInsight?.customInvestmentType || selectedInvestmentType}
+                  aiRecommendedType={investmentInsight?.recommendedInvestmentId}
+                  onSelect={handleInvestmentTypeSelect}
+                />
+                
+                {/* Show instructions for selected investment type */}
+                {(investmentInsight?.customInvestmentType || selectedInvestmentType) && (
+                  <div className="mt-4 flex justify-center">
+                    <InvestmentInstructions investmentTypeId={investmentInsight?.customInvestmentType || selectedInvestmentType} />
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
         
         {/* Service Setup Card for users with no transactions */}
         {transactions.length === 0 && (
