@@ -3,6 +3,7 @@ import { Table2, Wallet, TrendingUp, TrendingDown, DollarSign, Settings } from '
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useTransactions } from '@/hooks/useTransactions';
+import { useInvestmentPreferences } from '@/hooks/useInvestmentPreferences';
 import { aiService, InvestmentInsight } from '@/lib/aiService';
 import { useNavigate } from 'react-router-dom';
 import { Transaction } from '../types/transaction';
@@ -11,15 +12,16 @@ import { PermissionDialog } from '../components/PermissionDialog';
 import { InvestmentTypeSelector } from '@/components/InvestmentTypeSelector';
 import { InvestmentInstructions } from '@/components/InvestmentInstructions';
 import { InvestmentType } from '@/types/investment';
+import { investmentTypes } from '@/data/investmentTypes';
 
 const Index = () => {
   const navigate = useNavigate();
   const { transactions } = useTransactions();
+  const { selectedInvestmentType, setSelectedInvestmentType } = useInvestmentPreferences();
   const [investmentInsight, setInvestmentInsight] = useState<InvestmentInsight | null>(null);
   const [loadingInsight, setLoadingInsight] = useState(false);
   const [serviceStatus, setServiceStatus] = useState({ enabled: false, notificationEnabled: false, accessibilityEnabled: false });
   const [showPermissionDialog, setShowPermissionDialog] = useState(false);
-  const [selectedInvestmentType, setSelectedInvestmentType] = useState<string>('');
 
   
   useEffect(() => {
@@ -85,6 +87,13 @@ const Index = () => {
         customInvestmentType: type.id
       });
     }
+  };
+
+  // Helper function to get investment type display name
+  const getInvestmentDisplayName = (investmentInsight: InvestmentInsight) => {
+    const typeId = investmentInsight.customInvestmentType || investmentInsight.recommendedInvestmentId;
+    const investmentType = investmentTypes.find(t => t.id === typeId);
+    return investmentType ? investmentType.name : investmentInsight.investmentType;
   };
   
   // Permission dialog removed - always show main app
@@ -165,19 +174,12 @@ const Index = () => {
                       <span className="text-xs">💎</span>
                     </div>
                     <span className="font-medium text-primary-foreground text-sm">
-                      {investmentInsight.investmentType}
+                      {getInvestmentDisplayName(investmentInsight)}
                     </span>
                   </div>
-                  <p className="text-primary-foreground/80 text-xs leading-relaxed mb-3">
+                  <p className="text-primary-foreground/80 text-xs leading-relaxed">
                     {investmentInsight.recommendation}
                   </p>
-                  
-                  {/* Investment Instructions Button */}
-                  {investmentInsight.recommendedInvestmentId && (
-                    <div className="flex justify-center">
-                      <InvestmentInstructions investmentTypeId={investmentInsight.recommendedInvestmentId} />
-                    </div>
-                  )}
                 </div>
               </div>
             ) : (
