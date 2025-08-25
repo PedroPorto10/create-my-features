@@ -58,7 +58,7 @@ public class BankNotificationForegroundService extends Service {
         );
         
         return new NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("C6 Finance - Monitoring")
+            .setContentTitle("Finance - Monitoring")
             .setContentText("Capturing bank notifications in background")
             .setSmallIcon(android.R.drawable.ic_dialog_info)
             .setContentIntent(pendingIntent)

@@ -18,6 +18,16 @@ export interface HybridBankNotificationsPlugin {
   }>;
   openNotificationSettings(): Promise<void>;
   openAccessibilitySettings(): Promise<void>;
+  requestNotificationPermission(): Promise<{ granted: boolean }>;
+  requestAccessibilityPermission(): Promise<{ granted: boolean }>;
+  getPermissionDebugInfo(): Promise<{
+    packageName: string;
+    enabledListeners: string;
+    notificationEnabled: boolean;
+    accessibilityEnabled: boolean;
+    servicesRunning: boolean;
+    serviceError?: string;
+  }>;
   drainBacklog(): Promise<{ events: BankTransactionEvent[] }>;
 }
 
@@ -39,5 +49,33 @@ export const HybridBankNotifications = {
   },
   openNotificationSettings: () => plugin.openNotificationSettings(),
   openAccessibilitySettings: () => plugin.openAccessibilitySettings(),
+  requestNotificationPermission: async () => {
+    try {
+      return await plugin.requestNotificationPermission();
+    } catch {
+      return { granted: false };
+    }
+  },
+  requestAccessibilityPermission: async () => {
+    try {
+      return await plugin.requestAccessibilityPermission();
+    } catch {
+      return { granted: false };
+    }
+  },
+  getPermissionDebugInfo: async () => {
+    try {
+      return await plugin.getPermissionDebugInfo();
+    } catch (error) {
+      return {
+        packageName: 'unknown',
+        enabledListeners: 'error',
+        notificationEnabled: false,
+        accessibilityEnabled: false,
+        servicesRunning: false,
+        serviceError: String(error)
+      };
+    }
+  },
   drainBacklog: () => plugin.drainBacklog(),
 };

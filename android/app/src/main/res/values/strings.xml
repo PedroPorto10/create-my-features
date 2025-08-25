@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">C6 Finance</string>
-    <string name="title_activity_main">C6 Finance</string>
+    <string name="app_name">Finance</string>
+    <string name="title_activity_main">Finance</string>
     <string name="accessibility_service_description">Monitora transações PIX do C6 Bank para organizar suas finanças automaticamente. Este serviço lê o conteúdo da tela apenas em apps bancários.</string>
     <string name="package_name">app.lovable.f395cb8c947c49bbb0566cc2a825f358</string>
     <string name="custom_url_scheme">app.lovable.f395cb8c947c49bbb0566cc2a825f358</string>

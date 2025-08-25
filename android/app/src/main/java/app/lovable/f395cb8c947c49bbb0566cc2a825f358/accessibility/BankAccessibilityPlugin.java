@@ -45,9 +45,14 @@ public class BankAccessibilityPlugin extends Plugin {
         
         IntentFilter filter = new IntentFilter(BankAccessibilityService.ACTION_NEW_BANK_EVENT);
         try {
-            ctx.registerReceiver(receiver, filter, Context.RECEIVER_EXPORTED);
-        } catch (NoSuchMethodError e) {
-            // Fallback for older Android SDKs
+            // Use reflection to safely check for API level 26+ methods
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                ctx.registerReceiver(receiver, filter, Context.RECEIVER_EXPORTED);
+            } else {
+                ctx.registerReceiver(receiver, filter);
+            }
+        } catch (Exception e) {
+            // Fallback for any issues
             ctx.registerReceiver(receiver, filter);
         }
     }

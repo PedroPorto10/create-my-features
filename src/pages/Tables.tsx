@@ -1,6 +1,7 @@
-import { ArrowLeft, TrendingUp, TrendingDown } from 'lucide-react';
+import { ArrowLeft, TrendingUp, TrendingDown, BarChart3 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useNavigate } from 'react-router-dom';
 import { Transaction } from '../types/transaction';
@@ -12,9 +13,6 @@ const Tables = () => {
   const receivedTransactions = getReceivedCurrentMonth();
   const sentTransactions = getSentCurrentMonth();
   
-  const handleTableClick = (type: 'received' | 'sent') => {
-    navigate(`/charts/${type}`);
-  };
   
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -45,8 +43,7 @@ const Tables = () => {
     
     return (
       <Card 
-        className="bg-gradient-card shadow-xl hover:shadow-2xl transition-all cursor-pointer rounded-2xl border-0"
-        onClick={() => handleTableClick(type)}
+        className="bg-gradient-card shadow-xl rounded-2xl border-0"
       >
         <CardHeader className="pb-4">
           <CardTitle className="flex items-center gap-3 text-card-foreground text-xl">
@@ -97,14 +94,12 @@ const Tables = () => {
       <div className="max-w-md mx-auto">
         {/* Header */}
         <div className="flex items-center gap-4 mb-8">
-          <Button 
-            variant="ghost" 
-            size="icon"
+          <button 
             onClick={() => navigate('/')}
-            className="text-primary p-3 rounded-2xl hover:bg-primary/10"
+            className="text-primary p-3 rounded-2xl hover:bg-primary/10 bg-transparent border-none cursor-pointer flex items-center justify-center"
           >
             <ArrowLeft className="h-6 w-6" />
-          </Button>
+          </button>
           <div>
             <h1 className="text-3xl font-bold text-foreground">Transações do Mês</h1>
             <p className="text-muted-foreground text-lg">
@@ -113,22 +108,96 @@ const Tables = () => {
           </div>
         </div>
         
-        {/* Transaction Tables - Stack on mobile */}
-        <div className="space-y-6">
-          <TransactionTable
-            transactions={receivedTransactions}
-            type="received"
-            title="Recebidas"
-            icon={<TrendingUp className="h-6 w-6 text-green-600 dark:text-green-400" />}
-          />
-          
-          <TransactionTable
-            transactions={sentTransactions}
-            type="sent"
-            title="Enviadas"
-            icon={<TrendingDown className="h-6 w-6 text-red-600 dark:text-red-400" />}
-          />
+        {/* Graphs Button */}
+        <div className="mb-6">
+          <Button
+            onClick={() => navigate('/charts')}
+            className="w-full h-16 bg-gradient-primary hover:shadow-xl text-primary-foreground rounded-2xl transition-all duration-200"
+          >
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-primary-foreground/10 rounded-xl">
+                <BarChart3 className="h-7 w-7" />
+              </div>
+              <div className="text-left">
+                <p className="font-semibold text-lg">Ver Gráficos</p>
+                <p className="text-base opacity-90">Análise visual das transações</p>
+              </div>
+            </div>
+          </Button>
         </div>
+        
+        {/* Combined Transactions Table */}
+        <Card className="bg-gradient-card shadow-xl rounded-2xl border-0">
+          <CardHeader className="pb-4">
+            <CardTitle className="flex items-center gap-3 text-card-foreground text-xl">
+              <TrendingUp className="h-6 w-6 text-primary" />
+              Todas as Transações
+            </CardTitle>
+            <div className="flex gap-4 text-sm">
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded bg-green-600"></div>
+                <span>Recebido ({receivedTransactions.length})</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded bg-red-600"></div>
+                <span>Enviado ({sentTransactions.length})</span>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="max-h-[70vh] overflow-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[40%]">Contato</TableHead>
+                    <TableHead className="w-[30%]">Data</TableHead>
+                    <TableHead className="text-right w-[30%]">Valor</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {[...receivedTransactions, ...sentTransactions]
+                    .sort((a, b) => b.date.getTime() - a.date.getTime())
+                    .map((transaction) => (
+                    <TableRow 
+                      key={`${transaction.type}-${transaction.id}`}
+                      className={`${
+                        transaction.type === 'received' 
+                          ? 'bg-green-50 dark:bg-green-900/10 hover:bg-green-100 dark:hover:bg-green-900/20' 
+                          : 'bg-red-50 dark:bg-red-900/10 hover:bg-red-100 dark:hover:bg-red-900/20'
+                      } transition-colors`}
+                    >
+                      <TableCell className="font-medium truncate max-w-0">{transaction.contact}</TableCell>
+                      <TableCell className="text-muted-foreground text-sm">
+                        {transaction.date.toLocaleDateString('pt-BR', { 
+                          day: '2-digit', 
+                          month: '2-digit',
+                          hour: '2-digit', 
+                          minute: '2-digit' 
+                        })}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <span className={`font-bold text-sm ${
+                          transaction.type === 'received' 
+                            ? 'text-green-600 dark:text-green-400' 
+                            : 'text-red-600 dark:text-red-400'
+                        }`}>
+                          {transaction.type === 'received' ? '+' : '-'} {formatCurrency(transaction.amount)}
+                        </span>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {receivedTransactions.length === 0 && sentTransactions.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={3} className="text-center text-muted-foreground py-12">
+                        <p className="text-lg">Nenhuma transação encontrada este mês</p>
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

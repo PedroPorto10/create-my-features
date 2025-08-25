@@ -39,6 +39,14 @@ export const useTransactions = () => {
     let cleanup: (() => void) | undefined;
 
     const setupListeners = async () => {
+      // Check permissions but let UI handle the requests
+      try {
+        const status = await HybridBankNotifications.isEnabled();
+        console.log('Services status:', status);
+      } catch (error) {
+        console.error('Failed to check permissions:', error);
+      }
+
       // Drain any backlog captured while the app was closed
       try {
         const res = await HybridBankNotifications.drainBacklog();
@@ -53,17 +61,17 @@ export const useTransactions = () => {
               contact: ev.contact || 'Desconhecido',
               description: ev.description
             }));
+            // More efficient deduplication using Set
+            const seenKeys = new Set<string>();
             const merged = [...toAdd, ...prev]
-              .reduce((acc, t) => {
-                // dedupe by id+date
+              .filter(t => {
                 const key = `${t.id}-${t.date.getTime()}`;
-                if (!(key in acc.map)) {
-                  acc.map[key] = true;
-                  acc.list.push(t);
+                if (seenKeys.has(key)) {
+                  return false;
                 }
-                return acc;
-              }, { map: {} as Record<string, boolean>, list: [] as Transaction[] })
-              .list
+                seenKeys.add(key);
+                return true;
+              })
               .sort((a, b) => b.date.getTime() - a.date.getTime());
             persist(merged);
             return merged;
@@ -134,27 +142,20 @@ export const useTransactions = () => {
   const getMonthlyData = (): MonthlyData[] => {
     const monthlyData: { [key: string]: MonthlyData } = {};
     
-    // Use range around existing transactions
-    const allDates = transactions.map(t => t.date.getTime());
-    const now = Date.now();
-    const minTime = allDates.length ? Math.min(...allDates) : now;
-    const months = new Set<string>();
-    const base = new Date(minTime);
-    base.setDate(1);
-    const cursor = new Date(base);
-    const end = new Date();
-    end.setMonth(end.getMonth() + 4);
+    // Create correct 5-month sequence: last 2 + current + next 2
+    const now = new Date();
+    const startMonth = new Date(now.getFullYear(), now.getMonth() - 2, 1);
+    const cursor = new Date(startMonth);
 
-    while (cursor <= end) {
+    // Generate exactly 5 months: 2 previous + current + 2 future
+    for (let i = 0; i < 5; i++) {
       const monthKey = cursor.toISOString().substring(0, 7);
       const monthName = cursor.toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' });
-      if (!months.has(monthKey)) {
-        months.add(monthKey);
-        monthlyData[monthKey] = { month: monthName, received: 0, sent: 0 };
-      }
+      monthlyData[monthKey] = { month: monthName, received: 0, sent: 0 };
       cursor.setMonth(cursor.getMonth() + 1);
     }
     
+    // Aggregate transactions into the months
     transactions.forEach(t => {
       const monthKey = t.date.toISOString().substring(0, 7);
       if (monthlyData[monthKey]) {
@@ -166,15 +167,86 @@ export const useTransactions = () => {
       }
     });
     
-    return Object.values(monthlyData);
+    // Get sorted data for trend calculation
+    const sortedData = Object.keys(monthlyData)
+      .sort()
+      .map(key => monthlyData[key]);
+    
+    // Calculate trend-based predictions for future months
+    const calculateTrendPrediction = (values: number[], isReceived: boolean = true) => {
+      const hasRealData = values.some(v => v > 0);
+      
+      if (!hasRealData) {
+        // Generate realistic sample data for demonstration when no real data exists
+        const baseAmount = isReceived ? 1500 + Math.random() * 500 : 800 + Math.random() * 400;
+        return Math.round(baseAmount * 100) / 100;
+      }
+      
+      if (values.length < 2) return values[values.length - 1] || 0;
+      
+      // Calculate growth trend from historical data
+      let totalGrowth = 0;
+      let growthCount = 0;
+      
+      for (let i = 1; i < values.length; i++) {
+        if (values[i - 1] > 0) {
+          const growth = values[i] - values[i - 1];
+          totalGrowth += growth;
+          growthCount++;
+        }
+      }
+      
+      const averageGrowth = growthCount > 0 ? totalGrowth / growthCount : 0;
+      const lastValue = values[values.length - 1];
+      
+      // Add some realistic variation to predictions
+      const variation = (Math.random() - 0.5) * 0.2; // ±10% variation
+      const prediction = lastValue + averageGrowth + (lastValue * variation);
+      
+      return Math.max(0, Math.round(prediction * 100) / 100);
+    };
+    
+    // Apply predictions to future months (indexes 3 and 4)
+    if (sortedData.length >= 5) {
+      // Get historical data for trend calculation
+      const historicalReceived = sortedData.slice(0, 3).map(d => d.received);
+      const historicalSent = sortedData.slice(0, 3).map(d => d.sent);
+      
+      // Check if we have any real data at all
+      const hasAnyRealData = [...historicalReceived, ...historicalSent].some(v => v > 0);
+      
+      if (hasAnyRealData) {
+        // Use real data for predictions
+        const receivedPrediction = calculateTrendPrediction(historicalReceived, true);
+        const sentPrediction = calculateTrendPrediction(historicalSent, false);
+        
+        sortedData[3].received = receivedPrediction;
+        sortedData[3].sent = sentPrediction;
+        
+        // For the month after that, apply trend again
+        const nextReceivedPrediction = calculateTrendPrediction([...historicalReceived, receivedPrediction], true);
+        const nextSentPrediction = calculateTrendPrediction([...historicalSent, sentPrediction], false);
+        
+        sortedData[4].received = nextReceivedPrediction;
+        sortedData[4].sent = nextSentPrediction;
+      }
+    }
+    
+    return sortedData;
   };
   
+  const clearTransactions = () => {
+    setTransactions([]);
+    localStorage.removeItem(STORAGE_KEY);
+  };
+
   return {
     transactions,
     getRecentTransactions,
     getCurrentMonthTransactions,
     getReceivedCurrentMonth,
     getSentCurrentMonth,
-    getMonthlyData
+    getMonthlyData,
+    clearTransactions
   };
 };

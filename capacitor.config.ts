@@ -2,7 +2,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'app.lovable.f395cb8c947c49bbb0566cc2a825f358',
-  appName: 'C6 Finance',
+  appName: 'Finance',
   webDir: 'dist',
   plugins: {
     SplashScreen: {

@@ -70,6 +70,8 @@ public class BankNotificationListenerService extends NotificationListenerService
 		Log.d(TAG, "=== New Notification Debug ===");
 		Log.d(TAG, "Package: " + sbn.getPackageName());
 		Log.d(TAG, "App Name: " + sbn.getPackageName());
+		Log.d(TAG, "Notification ID: " + sbn.getId());
+		Log.d(TAG, "Post Time: " + sbn.getPostTime());
 
 		CharSequence titleCs = extras.getCharSequence(Notification.EXTRA_TITLE);
 		CharSequence textCs = extras.getCharSequence(Notification.EXTRA_TEXT);
