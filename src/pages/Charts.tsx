@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useTransactions } from '@/hooks/useTransactions';
 import { aiService, SpendingCategory } from '@/lib/aiService';
 import { useNavigate } from 'react-router-dom';
+import { useBackButton } from '@/hooks/useBackButton';
 import { useState, useEffect } from 'react';
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 
@@ -12,6 +13,7 @@ const Charts = () => {
   const { getMonthlyData, transactions } = useTransactions();
   const [spendingCategories, setSpendingCategories] = useState<SpendingCategory[]>([]);
   const [loadingCategories, setLoadingCategories] = useState(false);
+  const { handleBack } = useBackButton({ targetRoute: '/tables' });
   
   const monthlyData = getMonthlyData();
 
@@ -95,11 +97,7 @@ const Charts = () => {
           <Button 
             variant="ghost" 
             size="icon"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              navigate('/tables');
-            }}
+            onClick={handleBack}
             className="text-primary"
           >
             <ArrowLeft className="h-6 w-6" />

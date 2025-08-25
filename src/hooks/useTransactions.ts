@@ -240,6 +240,14 @@ export const useTransactions = () => {
     localStorage.removeItem(STORAGE_KEY);
   };
 
+  const deleteTransaction = (id: string) => {
+    setTransactions(prev => {
+      const updated = prev.filter(t => t.id !== id);
+      persist(updated);
+      return updated;
+    });
+  };
+
   return {
     transactions,
     getRecentTransactions,
@@ -247,6 +255,7 @@ export const useTransactions = () => {
     getReceivedCurrentMonth,
     getSentCurrentMonth,
     getMonthlyData,
-    clearTransactions
+    clearTransactions,
+    deleteTransaction
   };
 };

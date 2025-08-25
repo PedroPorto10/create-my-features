@@ -16,6 +16,7 @@ const Index = () => {
   const [loadingInsight, setLoadingInsight] = useState(false);
   const [serviceStatus, setServiceStatus] = useState({ enabled: false, notificationEnabled: false, accessibilityEnabled: false });
   const [showPermissionDialog, setShowPermissionDialog] = useState(false);
+
   
   useEffect(() => {
     const loadInvestmentInsight = async () => {

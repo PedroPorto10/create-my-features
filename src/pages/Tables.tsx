@@ -1,14 +1,18 @@
-import { ArrowLeft, TrendingUp, TrendingDown, BarChart3 } from 'lucide-react';
+import { ArrowLeft, TrendingUp, TrendingDown, BarChart3, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useNavigate } from 'react-router-dom';
+import { useBackButton } from '@/hooks/useBackButton';
 import { Transaction } from '../types/transaction';
+import { useState, useRef } from 'react';
 
 const Tables = () => {
   const navigate = useNavigate();
-  const { getReceivedCurrentMonth, getSentCurrentMonth } = useTransactions();
+  const { getReceivedCurrentMonth, getSentCurrentMonth, deleteTransaction } = useTransactions();
+  const [swipingTransaction, setSwipingTransaction] = useState<string | null>(null);
+  const { handleBack } = useBackButton({ targetRoute: '/' });
   
   const receivedTransactions = getReceivedCurrentMonth();
   const sentTransactions = getSentCurrentMonth();
@@ -26,6 +30,123 @@ const Tables = () => {
       day: '2-digit',
       month: '2-digit'
     }).format(date);
+  };
+
+  const SwipeableTableRow = ({ transaction }: { transaction: Transaction }) => {
+    const [dragX, setDragX] = useState(0);
+    const [isDragging, setIsDragging] = useState(false);
+    const [startX, setStartX] = useState(0);
+    const rowRef = useRef<HTMLTableRowElement>(null);
+
+    const handleTouchStart = (e: React.TouchEvent) => {
+      setStartX(e.touches[0].clientX);
+      setIsDragging(true);
+    };
+
+    const handleTouchMove = (e: React.TouchEvent) => {
+      if (!isDragging) return;
+      
+      const currentX = e.touches[0].clientX;
+      const deltaX = currentX - startX;
+      
+      // Only allow swiping left (negative values)
+      if (deltaX < 0) {
+        setDragX(Math.max(deltaX, -100));
+      }
+    };
+
+    const handleTouchEnd = () => {
+      if (!isDragging) return;
+      
+      if (dragX < -50) {
+        // Swipe threshold reached, delete transaction
+        deleteTransaction(transaction.id);
+      }
+      
+      // Reset position
+      setDragX(0);
+      setIsDragging(false);
+    };
+
+    const handleMouseDown = (e: React.MouseEvent) => {
+      setStartX(e.clientX);
+      setIsDragging(true);
+    };
+
+    const handleMouseMove = (e: React.MouseEvent) => {
+      if (!isDragging) return;
+      
+      const currentX = e.clientX;
+      const deltaX = currentX - startX;
+      
+      if (deltaX < 0) {
+        setDragX(Math.max(deltaX, -100));
+      }
+    };
+
+    const handleMouseUp = () => {
+      if (!isDragging) return;
+      
+      if (dragX < -50) {
+        deleteTransaction(transaction.id);
+      }
+      
+      setDragX(0);
+      setIsDragging(false);
+    };
+
+    const isDeleteReady = dragX < -50;
+
+    return (
+      <TableRow 
+        ref={rowRef}
+        key={`${transaction.type}-${transaction.id}`}
+        className={`${
+          transaction.type === 'received' 
+            ? 'bg-green-50 dark:bg-green-900/10 hover:bg-green-100 dark:hover:bg-green-900/20' 
+            : 'bg-red-50 dark:bg-red-900/10 hover:bg-red-100 dark:hover:bg-red-900/20'
+        } transition-colors relative cursor-grab ${isDragging ? 'cursor-grabbing' : ''} ${isDeleteReady ? 'bg-red-100 dark:bg-red-900/30' : ''}`}
+        style={{
+          transform: `translateX(${dragX}px)`,
+          transition: isDragging ? 'none' : 'transform 0.2s ease-out'
+        }}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+      >
+        <TableCell className="font-medium truncate max-w-0">{transaction.contact}</TableCell>
+        <TableCell className="text-muted-foreground text-sm">
+          {transaction.date.toLocaleDateString('pt-BR', { 
+            day: '2-digit', 
+            month: '2-digit',
+            hour: '2-digit', 
+            minute: '2-digit' 
+          })}
+        </TableCell>
+        <TableCell className="text-right">
+          <span className={`font-bold text-sm ${
+            transaction.type === 'received' 
+              ? 'text-green-600 dark:text-green-400' 
+              : 'text-red-600 dark:text-red-400'
+          }`}>
+            {transaction.type === 'received' ? '+' : ''} {formatCurrency(transaction.amount)}
+          </span>
+        </TableCell>
+        {/* Delete indicator */}
+        {dragX < -20 && (
+          <div className="absolute right-4 top-1/2 transform -translate-y-1/2 flex items-center gap-2 text-red-600 dark:text-red-400">
+            <Trash2 className={`h-5 w-5 ${isDeleteReady ? 'animate-pulse' : ''}`} />
+            <span className="text-sm font-medium">
+              {isDeleteReady ? 'Solte para excluir' : 'Continue arrastando'}
+            </span>
+          </div>
+        )}
+      </TableRow>
+    );
   };
   
   const TransactionTable = ({ 
@@ -95,7 +216,7 @@ const Tables = () => {
         {/* Header */}
         <div className="flex items-center gap-4 mb-8">
           <button 
-            onClick={() => navigate('/')}
+            onClick={handleBack}
             className="text-primary p-3 rounded-2xl hover:bg-primary/10 bg-transparent border-none cursor-pointer flex items-center justify-center"
           >
             <ArrowLeft className="h-6 w-6" />
@@ -158,33 +279,7 @@ const Tables = () => {
                   {[...receivedTransactions, ...sentTransactions]
                     .sort((a, b) => b.date.getTime() - a.date.getTime())
                     .map((transaction) => (
-                    <TableRow 
-                      key={`${transaction.type}-${transaction.id}`}
-                      className={`${
-                        transaction.type === 'received' 
-                          ? 'bg-green-50 dark:bg-green-900/10 hover:bg-green-100 dark:hover:bg-green-900/20' 
-                          : 'bg-red-50 dark:bg-red-900/10 hover:bg-red-100 dark:hover:bg-red-900/20'
-                      } transition-colors`}
-                    >
-                      <TableCell className="font-medium truncate max-w-0">{transaction.contact}</TableCell>
-                      <TableCell className="text-muted-foreground text-sm">
-                        {transaction.date.toLocaleDateString('pt-BR', { 
-                          day: '2-digit', 
-                          month: '2-digit',
-                          hour: '2-digit', 
-                          minute: '2-digit' 
-                        })}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <span className={`font-bold text-sm ${
-                          transaction.type === 'received' 
-                            ? 'text-green-600 dark:text-green-400' 
-                            : 'text-red-600 dark:text-red-400'
-                        }`}>
-                          {transaction.type === 'received' ? '+' : '-'} {formatCurrency(transaction.amount)}
-                        </span>
-                      </TableCell>
-                    </TableRow>
+                      <SwipeableTableRow key={`${transaction.type}-${transaction.id}`} transaction={transaction} />
                   ))}
                   {receivedTransactions.length === 0 && sentTransactions.length === 0 && (
                     <TableRow>
