@@ -8,6 +8,9 @@ import { useNavigate } from 'react-router-dom';
 import { Transaction } from '../types/transaction';
 import { HybridBankNotifications } from '../lib/hybridBankNotifications';
 import { PermissionDialog } from '../components/PermissionDialog';
+import { InvestmentTypeSelector } from '@/components/InvestmentTypeSelector';
+import { InvestmentInstructions } from '@/components/InvestmentInstructions';
+import { InvestmentType } from '@/types/investment';
 
 const Index = () => {
   const navigate = useNavigate();
@@ -16,13 +19,15 @@ const Index = () => {
   const [loadingInsight, setLoadingInsight] = useState(false);
   const [serviceStatus, setServiceStatus] = useState({ enabled: false, notificationEnabled: false, accessibilityEnabled: false });
   const [showPermissionDialog, setShowPermissionDialog] = useState(false);
+  const [selectedInvestmentType, setSelectedInvestmentType] = useState<string>('');
 
   
   useEffect(() => {
     const loadInvestmentInsight = async () => {
       setLoadingInsight(true);
       try {
-        const insight = await aiService.generateInvestmentInsight(transactions);
+        const customType = selectedInvestmentType;
+        const insight = await aiService.generateInvestmentInsight(transactions, customType);
         setInvestmentInsight(insight);
       } catch (error) {
         console.error('Error loading investment insight:', error);
@@ -43,7 +48,7 @@ const Index = () => {
         setTimeout(() => setShowPermissionDialog(true), 1000);
       }
     });
-  }, [transactions]);
+  }, [transactions, selectedInvestmentType]);
   
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -69,6 +74,10 @@ const Index = () => {
     HybridBankNotifications.isEnabled().then(status => {
       setServiceStatus(status);
     });
+  };
+
+  const handleInvestmentTypeSelect = (type: InvestmentType) => {
+    setSelectedInvestmentType(type.name);
   };
   
   // Permission dialog removed - always show main app
@@ -107,6 +116,28 @@ const Index = () => {
             </div>
           </Button>
         </div>
+
+        {/* Investment Customization */}
+        {transactions.length > 0 && (
+          <Card className="bg-gradient-card shadow-xl mb-6 rounded-2xl">
+            <CardContent className="p-6">
+              <div className="mb-4">
+                <h3 className="font-semibold text-card-foreground mb-2 flex items-center gap-2">
+                  <Settings className="h-5 w-5" />
+                  Personalize seus investimentos
+                </h3>
+                <p className="text-muted-foreground text-sm mb-4">
+                  Escolha o tipo de investimento que mais se adequa ao seu perfil
+                </p>
+                <InvestmentTypeSelector
+                  selectedType={investmentInsight?.customInvestmentType || ''}
+                  aiRecommendedType={investmentInsight?.recommendedInvestmentId}
+                  onSelect={handleInvestmentTypeSelect}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* AI Investment Insights */}
         <Card className="bg-gradient-primary shadow-xl mb-8 rounded-2xl">
@@ -152,9 +183,16 @@ const Index = () => {
                       {investmentInsight.investmentType}
                     </span>
                   </div>
-                  <p className="text-primary-foreground/80 text-xs leading-relaxed">
+                  <p className="text-primary-foreground/80 text-xs leading-relaxed mb-3">
                     {investmentInsight.recommendation}
                   </p>
+                  
+                  {/* Investment Instructions Button */}
+                  {investmentInsight.recommendedInvestmentId && (
+                    <div className="flex justify-center">
+                      <InvestmentInstructions investmentTypeId={investmentInsight.recommendedInvestmentId} />
+                    </div>
+                  )}
                 </div>
               </div>
             ) : (

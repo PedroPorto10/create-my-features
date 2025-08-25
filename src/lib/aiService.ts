@@ -16,9 +16,11 @@ export interface InvestmentInsight {
   recommendedSavings: number;
   savingsPercentage: number;
   investmentType: string;
+  recommendedInvestmentId: string;
   recommendation: string;
   monthlyExpenses: number;
   monthlyIncome: number;
+  customInvestmentType?: string;
 }
 
 export class AIService {
@@ -109,15 +111,17 @@ Responda APENAS no formato JSON:
     }
   }
 
-  async generateInvestmentInsight(transactions: Transaction[]): Promise<InvestmentInsight> {
+  async generateInvestmentInsight(transactions: Transaction[], customInvestmentType?: string): Promise<InvestmentInsight> {
     if (transactions.length === 0) {
       return {
         recommendedSavings: 0,
         savingsPercentage: 20,
         investmentType: 'Reserva de Emergência',
+        recommendedInvestmentId: 'poupanca',
         recommendation: 'Comece a rastrear suas transações para receber insights personalizados.',
         monthlyExpenses: 0,
-        monthlyIncome: 0
+        monthlyIncome: 0,
+        customInvestmentType
       };
     }
 
@@ -139,29 +143,35 @@ Responda APENAS no formato JSON:
       .reduce((sum, t) => sum + t.amount, 0);
 
     try {
+      const customPromptPart = customInvestmentType 
+        ? `\n\nO usuário selecionou o seguinte tipo de investimento: ${customInvestmentType}. Ajuste sua recomendação considerando essa preferência, mas ainda forneça sua sugestão técnica baseada no perfil financeiro.`
+        : '';
+
       const prompt = `
 Como consultor financeiro, analise o perfil financeiro e forneça recomendações:
 
 Renda mensal: R$ ${monthlyIncome.toFixed(2)}
 Gastos mensais: R$ ${monthlyExpenses.toFixed(2)}
-Saldo mensal: R$ ${(monthlyIncome - monthlyExpenses).toFixed(2)}
+Saldo mensal: R$ ${(monthlyIncome - monthlyExpenses).toFixed(2)}${customPromptPart}
 
 Com base nestes dados, recomende:
 1. Quanto poupar por mês (valor absoluto e percentual da renda)
-2. Tipo de investimento mais adequado
+2. Tipo de investimento mais adequado (escolha entre: poupanca, cdb, lci_lca, tesouro_selic, tesouro_ipca, fundos_rf, fundos_multimercado, acoes, etfs, fiis, ouro)
 3. Justificativa da recomendação
 
-Considere:
-- 50-30-20 rule (50% necessidades, 30% desejos, 20% poupança)
-- Reserva de emergência como prioridade
-- Perfil conservador para iniciantes
+Considere o perfil do investidor:
+- Renda baixa (até R$ 3.000): Poupança ou Tesouro Selic
+- Renda média (R$ 3.000-8.000): CDB, LCI/LCA, Tesouro IPCA+
+- Renda alta (acima R$ 8.000): Diversificação com fundos, ações, FIIs
+- Sempre priorize reserva de emergência
 
 Responda APENAS no formato JSON:
 {
   "recommendedSavings": valor_numerico,
   "savingsPercentage": percentual_numerico,
-  "investmentType": "tipo_do_investimento",
-  "recommendation": "explicacao_detalhada"
+  "investmentType": "nome_do_investimento",
+  "recommendedInvestmentId": "id_do_investimento",
+  "recommendation": "explicacao_detalhada_incluindo_como_fazer_no_c6_bank"
 }
 `;
 
@@ -174,10 +184,12 @@ Responda APENAS no formato JSON:
       return {
         recommendedSavings: parsed.recommendedSavings || 0,
         savingsPercentage: parsed.savingsPercentage || 20,
-        investmentType: parsed.investmentType || 'Reserva de Emergência',
+        investmentType: parsed.investmentType || 'Poupança',
+        recommendedInvestmentId: parsed.recommendedInvestmentId || 'poupanca',
         recommendation: parsed.recommendation || 'Mantenha disciplina financeira e comece poupando regularmente.',
         monthlyExpenses,
-        monthlyIncome
+        monthlyIncome,
+        customInvestmentType
       };
     } catch (error) {
       console.error('Error generating investment insight:', error);
@@ -186,13 +198,27 @@ Responda APENAS no formato JSON:
       const savingsPercentage = monthlyIncome > 0 ? Math.min(20, Math.max(5, ((monthlyIncome - monthlyExpenses) / monthlyIncome) * 100)) : 20;
       const recommendedSavings = (monthlyIncome * savingsPercentage) / 100;
       
+      // Smart fallback recommendation based on income
+      let fallbackType = 'poupanca';
+      let fallbackName = 'Poupança';
+      
+      if (monthlyIncome > 8000) {
+        fallbackType = 'cdb';
+        fallbackName = 'CDB';
+      } else if (monthlyIncome > 3000) {
+        fallbackType = 'tesouro_selic';
+        fallbackName = 'Tesouro Selic';
+      }
+      
       return {
         recommendedSavings,
         savingsPercentage,
-        investmentType: recommendedSavings < 1000 ? 'Poupança' : 'CDB',
-        recommendation: `Com base em sua renda de R$ ${monthlyIncome.toFixed(2)} e gastos de R$ ${monthlyExpenses.toFixed(2)}, recomendo poupar ${savingsPercentage.toFixed(1)}% da renda mensal. Foque primeiro em construir uma reserva de emergência de 6 meses de gastos.`,
+        investmentType: customInvestmentType || fallbackName,
+        recommendedInvestmentId: fallbackType,
+        recommendation: `Com base em sua renda de R$ ${monthlyIncome.toFixed(2)} e gastos de R$ ${monthlyExpenses.toFixed(2)}, recomendo poupar ${savingsPercentage.toFixed(1)}% da renda mensal em ${fallbackName}. Foque primeiro em construir uma reserva de emergência de 6 meses de gastos.`,
         monthlyExpenses,
-        monthlyIncome
+        monthlyIncome,
+        customInvestmentType
       };
     }
   }
