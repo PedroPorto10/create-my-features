@@ -1,4 +1,4 @@
-import { ArrowLeft, TrendingUp, TrendingDown, BarChart3, Trash2 } from 'lucide-react';
+import { ArrowLeft, TrendingUp, TrendingDown, BarChart3 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -49,17 +49,15 @@ const Tables = () => {
       const currentX = e.touches[0].clientX;
       const deltaX = currentX - startX;
       
-      // Only allow swiping left (negative values)
-      if (deltaX < 0) {
-        setDragX(Math.max(deltaX, -100));
-      }
+      // Allow swiping both left and right
+      setDragX(Math.max(Math.min(deltaX, 100), -100));
     };
 
     const handleTouchEnd = () => {
       if (!isDragging) return;
       
-      if (dragX < -50) {
-        // Swipe threshold reached, delete transaction
+      if (Math.abs(dragX) > 50) {
+        // Swipe threshold reached (either left or right), delete transaction
         deleteTransaction(transaction.id);
       }
       
@@ -79,23 +77,20 @@ const Tables = () => {
       const currentX = e.clientX;
       const deltaX = currentX - startX;
       
-      if (deltaX < 0) {
-        setDragX(Math.max(deltaX, -100));
-      }
+      // Allow dragging both left and right
+      setDragX(Math.max(Math.min(deltaX, 100), -100));
     };
 
     const handleMouseUp = () => {
       if (!isDragging) return;
       
-      if (dragX < -50) {
+      if (Math.abs(dragX) > 50) {
         deleteTransaction(transaction.id);
       }
       
       setDragX(0);
       setIsDragging(false);
     };
-
-    const isDeleteReady = dragX < -50;
 
     return (
       <TableRow 
@@ -105,7 +100,7 @@ const Tables = () => {
           transaction.type === 'received' 
             ? 'bg-green-50 dark:bg-green-900/10 hover:bg-green-100 dark:hover:bg-green-900/20' 
             : 'bg-red-50 dark:bg-red-900/10 hover:bg-red-100 dark:hover:bg-red-900/20'
-        } transition-colors relative cursor-grab ${isDragging ? 'cursor-grabbing' : ''} ${isDeleteReady ? 'bg-red-100 dark:bg-red-900/30' : ''}`}
+        } transition-colors relative cursor-grab ${isDragging ? 'cursor-grabbing' : ''}`}
         style={{
           transform: `translateX(${dragX}px)`,
           transition: isDragging ? 'none' : 'transform 0.2s ease-out'
@@ -136,15 +131,6 @@ const Tables = () => {
             {transaction.type === 'received' ? '+' : ''} {formatCurrency(transaction.amount)}
           </span>
         </TableCell>
-        {/* Delete indicator */}
-        {dragX < -20 && (
-          <div className="absolute right-4 top-1/2 transform -translate-y-1/2 flex items-center gap-2 text-red-600 dark:text-red-400">
-            <Trash2 className={`h-5 w-5 ${isDeleteReady ? 'animate-pulse' : ''}`} />
-            <span className="text-sm font-medium">
-              {isDeleteReady ? 'Solte para excluir' : 'Continue arrastando'}
-            </span>
-          </div>
-        )}
       </TableRow>
     );
   };
