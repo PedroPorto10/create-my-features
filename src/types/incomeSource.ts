@@ -3,7 +3,9 @@ export interface IncomeSource {
   name: string; // e.g., "Empresa XYZ", "Freelance", "Aposentadoria"
   type: 'work' | 'freelance' | 'investment' | 'pension' | 'benefits' | 'other';
   contactPattern: string; // Pattern to match transaction contacts
-  expectedAmount?: number; // Expected monthly amount
+  expectedAmount?: number; // Expected amount per payment
+  frequency: 'monthly' | 'biweekly' | 'weekly' | 'daily' | 'custom';
+  customFrequencyDays?: number; // For custom frequency (every X days)
   isActive: boolean;
 }
 

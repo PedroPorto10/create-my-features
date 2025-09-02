@@ -22,6 +22,7 @@ export const useIncomeSources = () => {
   const addIncomeSource = (source: Omit<IncomeSource, 'id'>) => {
     const newSource: IncomeSource = {
       ...source,
+      frequency: source.frequency || 'monthly', // Default to monthly if not specified
       id: Date.now().toString() + Math.random().toString(36).substr(2, 9)
     };
     const updated = [...incomeSources, newSource];
@@ -65,11 +66,20 @@ export const useIncomeSources = () => {
       const sourceTransactions = currentMonthReceived.filter(t => {
         if (matchedTransactions.has(t.id)) return false;
         
-        const contactLower = t.contact.toLowerCase();
-        const patternLower = source.contactPattern.toLowerCase();
+        // Normalize both strings for better matching
+        const contactNormalized = t.contact.toLowerCase()
+          .replace(/\s+/g, ' ')  // Multiple spaces to single space
+          .replace(/[^\w\s]/g, '') // Remove special characters
+          .trim();
+          
+        const patternNormalized = source.contactPattern.toLowerCase()
+          .replace(/\s+/g, ' ')  // Multiple spaces to single space
+          .replace(/[^\w\s]/g, '') // Remove special characters
+          .trim();
         
-        // Simple pattern matching - you can make this more sophisticated
-        return contactLower.includes(patternLower) || patternLower.includes(contactLower);
+        // Check if pattern is found in contact name
+        return contactNormalized.includes(patternNormalized) || 
+               patternNormalized.includes(contactNormalized);
       });
 
       if (sourceTransactions.length > 0) {
@@ -115,10 +125,33 @@ export const useIncomeSources = () => {
     };
   };
 
+  const getMonthlyAmountFromSource = (source: IncomeSource): number => {
+    if (!source.expectedAmount) return 0;
+    
+    switch (source.frequency) {
+      case 'monthly':
+        return source.expectedAmount;
+      case 'biweekly':
+        return source.expectedAmount * 2;
+      case 'weekly':
+        return source.expectedAmount * 4.33; // Average weeks per month
+      case 'daily':
+        return source.expectedAmount * 22; // Working days per month
+      case 'custom':
+        if (source.customFrequencyDays) {
+          const paymentsPerMonth = 30 / source.customFrequencyDays;
+          return source.expectedAmount * paymentsPerMonth;
+        }
+        return source.expectedAmount;
+      default:
+        return source.expectedAmount;
+    }
+  };
+
   const getTotalExpectedIncome = (): number => {
     return incomeSources
       .filter(source => source.isActive && source.expectedAmount)
-      .reduce((sum, source) => sum + (source.expectedAmount || 0), 0);
+      .reduce((sum, source) => sum + getMonthlyAmountFromSource(source), 0);
   };
 
   return {
@@ -128,6 +161,7 @@ export const useIncomeSources = () => {
     updateIncomeSource,
     deleteIncomeSource,
     analyzeIncome,
-    getTotalExpectedIncome
+    getTotalExpectedIncome,
+    getMonthlyAmountFromSource
   };
 };

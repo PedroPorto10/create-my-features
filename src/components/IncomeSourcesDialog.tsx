@@ -34,6 +34,8 @@ export const IncomeSourcesDialog = ({
     type: 'work' as IncomeSource['type'],
     contactPattern: '',
     expectedAmount: '',
+    frequency: 'monthly' as IncomeSource['frequency'],
+    customFrequencyDays: '',
     isActive: true
   });
 
@@ -44,6 +46,14 @@ export const IncomeSourcesDialog = ({
     { value: 'pension', label: 'Aposentadoria', emoji: '🏦' },
     { value: 'benefits', label: 'Benefícios', emoji: '🎯' },
     { value: 'other', label: 'Outros', emoji: '💰' }
+  ];
+
+  const frequencyOptions = [
+    { value: 'monthly', label: 'Mensal (1x por mês)', multiplier: 1 },
+    { value: 'biweekly', label: 'Quinzenal (2x por mês)', multiplier: 2 },
+    { value: 'weekly', label: 'Semanal (4x por mês)', multiplier: 4.33 },
+    { value: 'daily', label: 'Diário (22 dias úteis)', multiplier: 22 },
+    { value: 'custom', label: 'Personalizado', multiplier: 0 }
   ];
 
   const getTypeInfo = (type: IncomeSource['type']) => 
@@ -57,6 +67,8 @@ export const IncomeSourcesDialog = ({
       type: formData.type,
       contactPattern: formData.contactPattern.trim(),
       expectedAmount: formData.expectedAmount ? parseFloat(formData.expectedAmount.replace(',', '.')) : undefined,
+      frequency: formData.frequency,
+      customFrequencyDays: formData.customFrequencyDays ? parseInt(formData.customFrequencyDays) : undefined,
       isActive: formData.isActive
     };
 
@@ -73,6 +85,8 @@ export const IncomeSourcesDialog = ({
       type: 'work',
       contactPattern: '',
       expectedAmount: '',
+      frequency: 'monthly',
+      customFrequencyDays: '',
       isActive: true
     });
   };
@@ -83,6 +97,8 @@ export const IncomeSourcesDialog = ({
       type: source.type,
       contactPattern: source.contactPattern,
       expectedAmount: source.expectedAmount?.toString().replace('.', ',') || '',
+      frequency: source.frequency,
+      customFrequencyDays: source.customFrequencyDays?.toString() || '',
       isActive: source.isActive
     });
     setEditingId(source.id);
@@ -97,6 +113,8 @@ export const IncomeSourcesDialog = ({
       type: 'work',
       contactPattern: '',
       expectedAmount: '',
+      frequency: 'monthly',
+      customFrequencyDays: '',
       isActive: true
     });
   };
@@ -108,11 +126,35 @@ export const IncomeSourcesDialog = ({
     }).format(amount);
   };
 
+  const getMonthlyAmount = (source: IncomeSource) => {
+    if (!source.expectedAmount) return 0;
+    
+    const frequencyInfo = frequencyOptions.find(f => f.value === source.frequency);
+    if (source.frequency === 'custom' && source.customFrequencyDays) {
+      const paymentsPerMonth = 30 / source.customFrequencyDays;
+      return source.expectedAmount * paymentsPerMonth;
+    }
+    
+    return source.expectedAmount * (frequencyInfo?.multiplier || 1);
+  };
+
+  const getFrequencyLabel = (source: IncomeSource) => {
+    if (source.frequency === 'custom' && source.customFrequencyDays) {
+      return `A cada ${source.customFrequencyDays} dias`;
+    }
+    return frequencyOptions.find(f => f.value === source.frequency)?.label || 'Mensal';
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Gerenciar Fontes de Renda</DialogTitle>
+          <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg mt-2">
+            <p className="text-sm text-blue-800 dark:text-blue-200">
+              💡 <strong>Dica:</strong> Configure os nomes exatos que aparecem nas suas notificações bancárias para categorizar automaticamente suas fontes de renda.
+            </p>
+          </div>
         </DialogHeader>
         
         <div className="space-y-4">
@@ -136,9 +178,14 @@ export const IncomeSourcesDialog = ({
                           Padrão: "{source.contactPattern}"
                         </p>
                         {source.expectedAmount && (
-                          <p className="text-sm font-medium text-green-600">
-                            Esperado: {formatCurrency(source.expectedAmount)}
-                          </p>
+                          <div className="space-y-1">
+                            <p className="text-sm font-medium text-green-600">
+                              {formatCurrency(source.expectedAmount)} - {getFrequencyLabel(source)}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              ≈ {formatCurrency(getMonthlyAmount(source))} por mês
+                            </p>
+                          </div>
                         )}
                       </div>
                       <div className="flex gap-2">
@@ -205,34 +252,77 @@ export const IncomeSourcesDialog = ({
                 </div>
 
                 <div>
-                  <Label htmlFor="pattern">Padrão do contato</Label>
+                  <Label htmlFor="pattern">Fonte de Renda</Label>
                   <Input
                     id="pattern"
-                    placeholder="Ex: EMPRESA ABC, João Silva, Salário"
+                    placeholder="Ex: yourcompany ltda, freelance payment"
                     value={formData.contactPattern}
                     onChange={(e) => setFormData(prev => ({ ...prev, contactPattern: e.target.value }))}
                   />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Digite parte do nome que aparece nas transações desta fonte
-                  </p>
-                </div>
-
-                <div>
-                  <Label htmlFor="amount">Valor esperado (opcional)</Label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">R$</span>
-                    <Input
-                      id="amount"
-                      className="pl-10"
-                      placeholder="0,00"
-                      value={formData.expectedAmount}
-                      onChange={(e) => {
-                        const value = e.target.value.replace(/[^\d,]/g, '');
-                        setFormData(prev => ({ ...prev, expectedAmount: value }));
-                      }}
-                    />
+                  <div className="mt-2 space-y-1">
+                    <p className="text-xs text-muted-foreground">
+                      💡 <strong>Como encontrar:</strong> Digite exatamente como aparece na notificação do banco
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      📱 <strong>Exemplo:</strong> "Sua compra no cartão... em <span className="font-mono bg-muted px-1 rounded">MOVAX SOLUTIONS LTDA</span>"
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      🔍 O app vai buscar transações que contenham este nome
+                    </p>
                   </div>
                 </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="amount">Valor por pagamento</Label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">R$</span>
+                      <Input
+                        id="amount"
+                        className="pl-10"
+                        placeholder="500,00"
+                        value={formData.expectedAmount}
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/[^\d,]/g, '');
+                          setFormData(prev => ({ ...prev, expectedAmount: value }));
+                        }}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <Label htmlFor="frequency">Frequência</Label>
+                    <Select value={formData.frequency} onValueChange={(value) => 
+                      setFormData(prev => ({ ...prev, frequency: value as IncomeSource['frequency'] }))
+                    }>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {frequencyOptions.map((freq) => (
+                          <SelectItem key={freq.value} value={freq.value}>
+                            {freq.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {formData.frequency === 'custom' && (
+                  <div>
+                    <Label htmlFor="customDays">A cada quantos dias?</Label>
+                    <Input
+                      id="customDays"
+                      type="number"
+                      placeholder="15"
+                      value={formData.customFrequencyDays}
+                      onChange={(e) => setFormData(prev => ({ ...prev, customFrequencyDays: e.target.value }))}
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Ex: 15 para quinzenal, 7 para semanal
+                    </p>
+                  </div>
+                )}
 
                 <div className="flex gap-3">
                   <Button variant="outline" onClick={handleCancel} className="flex-1">

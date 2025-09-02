@@ -136,27 +136,19 @@ const Index = () => {
         </div>
 
         {/* Income Sources Button */}
-        <div className="grid grid-cols-1 gap-4 mb-8">
+        <div className="mb-6">
           <Button
             onClick={() => setShowIncomeSourcesDialog(true)}
-            className="h-20 bg-gradient-card text-card-foreground hover:shadow-xl border border-border rounded-2xl transition-all duration-200"
-            variant="ghost"
+            className="w-full h-12 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-750 rounded-xl transition-colors"
+            variant="outline"
           >
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-primary/10 rounded-xl">
-                <DollarSign className="h-7 w-7 text-primary" />
-              </div>
-              <div className="text-left">
-                <p className="font-semibold text-lg">
-                  {incomeSources.length > 0 ? 'Gerenciar Fontes de Renda' : 'Configurar Fontes de Renda'}
-                </p>
-                <p className="text-base text-muted-foreground">
-                  {incomeSources.length > 0 
-                    ? `${incomeSources.length} fonte${incomeSources.length > 1 ? 's' : ''} configurada${incomeSources.length > 1 ? 's' : ''}`
-                    : 'Identifique suas diferentes rendas'}
-                </p>
-              </div>
-            </div>
+            <DollarSign className="h-4 w-4 mr-2 text-green-600" />
+            {incomeSources.length > 0 ? 'Gerenciar Fontes de Renda' : 'Configurar Fontes de Renda'}
+            {incomeSources.length > 0 && (
+              <span className="ml-2 text-xs bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 px-2 py-1 rounded-full">
+                {incomeSources.length}
+              </span>
+            )}
           </Button>
         </div>
 
@@ -292,6 +284,15 @@ const Index = () => {
         onOpenChange={setShowIncomeDialog}
         currentIncome={monthlyIncome}
         onIncomeSet={setMonthlyIncome}
+      />
+
+      <IncomeSourcesDialog
+        open={showIncomeSourcesDialog}
+        onOpenChange={setShowIncomeSourcesDialog}
+        incomeSources={incomeSources}
+        onAddSource={addIncomeSource}
+        onUpdateSource={updateIncomeSource}
+        onDeleteSource={deleteIncomeSource}
       />
     </div>
   );
