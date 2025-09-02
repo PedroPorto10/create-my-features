@@ -6,12 +6,15 @@ import { useTransactions } from '@/hooks/useTransactions';
 import { useNavigate } from 'react-router-dom';
 import { useBackButton } from '@/hooks/useBackButton';
 import { Transaction } from '../types/transaction';
+import { CategoryDialog } from '@/components/CategoryDialog';
 import { useState, useRef } from 'react';
 
 const Tables = () => {
   const navigate = useNavigate();
-  const { getReceivedCurrentMonth, getSentCurrentMonth, deleteTransaction } = useTransactions();
+  const { getReceivedCurrentMonth, getSentCurrentMonth, deleteTransaction, updateTransactionCategory } = useTransactions();
   const [swipingTransaction, setSwipingTransaction] = useState<string | null>(null);
+  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
+  const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
   const { handleBack } = useBackButton({ targetRoute: '/' });
   
   const receivedTransactions = getReceivedCurrentMonth();
@@ -30,6 +33,15 @@ const Tables = () => {
       day: '2-digit',
       month: '2-digit'
     }).format(date);
+  };
+
+  const handleTransactionClick = (transaction: Transaction) => {
+    setSelectedTransaction(transaction);
+    setCategoryDialogOpen(true);
+  };
+
+  const handleCategorySelect = (transactionId: string, category: Transaction['category']) => {
+    updateTransactionCategory(transactionId, category);
   };
 
   const SwipeableTableRow = ({ transaction }: { transaction: Transaction }) => {
@@ -112,8 +124,25 @@ const Tables = () => {
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
+        onClick={(e) => {
+          if (!isDragging && Math.abs(dragX) < 5) {
+            handleTransactionClick(transaction);
+          }
+        }}
       >
-        <TableCell className="font-medium truncate max-w-0">{transaction.contact}</TableCell>
+        <TableCell className="font-medium truncate max-w-0">
+          {transaction.contact}
+          {transaction.category && (
+            <div className="text-xs text-muted-foreground mt-1">
+              {transaction.category === 'Alimentação' && '🍽️'} 
+              {transaction.category === 'Laser' && '🎯'} 
+              {transaction.category === 'Contas' && '📄'} 
+              {transaction.category === 'Transporte' && '🚗'} 
+              {transaction.category === 'Outros' && '📦'} 
+              {transaction.category}
+            </div>
+          )}
+        </TableCell>
         <TableCell className="text-muted-foreground text-sm">
           {transaction.date.toLocaleDateString('pt-BR', { 
             day: '2-digit', 
@@ -280,6 +309,13 @@ const Tables = () => {
           </CardContent>
         </Card>
       </div>
+      
+      <CategoryDialog
+        transaction={selectedTransaction}
+        open={categoryDialogOpen}
+        onOpenChange={setCategoryDialogOpen}
+        onCategorySelect={handleCategorySelect}
+      />
     </div>
   );
 };

@@ -5,6 +5,7 @@ export interface Transaction {
   date: Date;
   contact: string;
   description?: string;
+  category?: 'Alimentação' | 'Laser' | 'Contas' | 'Transporte' | 'Outros';
 }
 
 export interface MonthlyData {

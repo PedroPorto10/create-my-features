@@ -1,5 +1,6 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { Transaction } from '../types/transaction';
+import { IncomeAnalysis } from '../types/incomeSource';
 
 // Initialize the AI with API key (you'll need to add this to your .env file)
 const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY || '');
@@ -111,16 +112,17 @@ Responda APENAS no formato JSON:
     }
   }
 
-  async generateInvestmentInsight(transactions: Transaction[], customInvestmentType?: string): Promise<InvestmentInsight> {
+  async generateInvestmentInsight(transactions: Transaction[], customInvestmentType?: string, manualMonthlyIncome?: number, incomeAnalysis?: IncomeAnalysis): Promise<InvestmentInsight> {
     if (transactions.length === 0) {
+      const income = manualMonthlyIncome || 0;
       return {
-        recommendedSavings: 0,
+        recommendedSavings: income * 0.2,
         savingsPercentage: 20,
         investmentType: 'Reserva de Emergência',
         recommendedInvestmentId: 'poupanca',
         recommendation: 'Comece a rastrear suas transações para receber insights personalizados.',
         monthlyExpenses: 0,
-        monthlyIncome: 0,
+        monthlyIncome: income,
         customInvestmentType
       };
     }
@@ -134,9 +136,16 @@ Responda APENAS no formato JSON:
       t.date.getFullYear() === currentYear
     );
 
-    const monthlyIncome = currentMonthTxs
+    const calculatedMonthlyIncome = currentMonthTxs
       .filter(t => t.type === 'received')
       .reduce((sum, t) => sum + t.amount, 0);
+
+    // Use income analysis if available, otherwise manual income, then calculated income
+    const monthlyIncome = incomeAnalysis && incomeAnalysis.totalIncome > 0 
+      ? incomeAnalysis.totalIncome 
+      : (manualMonthlyIncome && manualMonthlyIncome > 0 
+        ? manualMonthlyIncome 
+        : calculatedMonthlyIncome);
 
     const monthlyExpenses = currentMonthTxs
       .filter(t => t.type === 'sent')
@@ -147,17 +156,39 @@ Responda APENAS no formato JSON:
         ? `\n\nO usuário selecionou o seguinte tipo de investimento: ${customInvestmentType}. Ajuste sua recomendação considerando essa preferência, mas ainda forneça sua sugestão técnica baseada no perfil financeiro.`
         : '';
 
+      let incomeBreakdownText = '';
+      if (incomeAnalysis && incomeAnalysis.incomeBreakdown.length > 0) {
+        incomeBreakdownText = '\n\nDetalhamento da renda:\n';
+        incomeAnalysis.incomeBreakdown.forEach(item => {
+          const typeLabel = item.type === 'work' || item.type === 'freelance' ? 'RENDA DO TRABALHO' : 'OUTRAS RECEITAS';
+          incomeBreakdownText += `- ${item.sourceName} (${typeLabel}): R$ ${item.amount.toFixed(2)}\n`;
+        });
+        incomeBreakdownText += `\nTotal Renda do Trabalho: R$ ${incomeAnalysis.workIncome.toFixed(2)}`;
+        incomeBreakdownText += `\nOutras Receitas: R$ ${incomeAnalysis.otherIncome.toFixed(2)}`;
+      }
+
+      const incomeSourceNote = incomeAnalysis 
+        ? ' (categorizada por fontes)' 
+        : (manualMonthlyIncome && manualMonthlyIncome > 0 
+          ? ' (informada pelo usuário)' 
+          : ' (baseada em transações)');
+
       const prompt = `
 Como consultor financeiro, analise o perfil financeiro e forneça recomendações:
 
-Renda mensal: R$ ${monthlyIncome.toFixed(2)}
+Renda mensal: R$ ${monthlyIncome.toFixed(2)}${incomeSourceNote}
 Gastos mensais: R$ ${monthlyExpenses.toFixed(2)}
-Saldo mensal: R$ ${(monthlyIncome - monthlyExpenses).toFixed(2)}${customPromptPart}
+Saldo mensal: R$ ${(monthlyIncome - monthlyExpenses).toFixed(2)}${incomeBreakdownText}${customPromptPart}
 
 Com base nestes dados, recomende:
 1. Quanto poupar por mês (valor absoluto e percentual da renda)
 2. Tipo de investimento mais adequado (escolha entre: poupanca, cdb, lci_lca, tesouro_selic, tesouro_ipca, fundos_rf, fundos_multimercado, acoes, etfs, fiis, ouro)
 3. Justificativa da recomendação
+
+IMPORTANTE: Se houver separação entre renda do trabalho e outras receitas:
+- Baseie as recomendações principalmente na RENDA DO TRABALHO (mais estável)
+- Outras receitas podem ser consideradas como recursos extras para investir
+- Seja mais conservador se a maior parte da renda vier de fontes não-trabalho
 
 Considere o perfil do investidor:
 - Renda baixa (até R$ 3.000): Poupança ou Tesouro Selic

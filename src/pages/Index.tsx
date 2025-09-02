@@ -4,11 +4,13 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useInvestmentPreferences } from '@/hooks/useInvestmentPreferences';
+import { useMonthlyIncome } from '@/hooks/useMonthlyIncome';
+import { useIncomeSources } from '@/hooks/useIncomeSources';
 import { aiService, InvestmentInsight } from '@/lib/aiService';
 import { useNavigate } from 'react-router-dom';
-import { Transaction } from '../types/transaction';
 import { HybridBankNotifications } from '../lib/hybridBankNotifications';
-import { PermissionDialog } from '../components/PermissionDialog';
+import { MonthlyIncomeDialog } from '@/components/MonthlyIncomeDialog';
+import { IncomeSourcesDialog } from '@/components/IncomeSourcesDialog';
 import { InvestmentTypeSelector } from '@/components/InvestmentTypeSelector';
 import { InvestmentInstructions } from '@/components/InvestmentInstructions';
 import { InvestmentType } from '@/types/investment';
@@ -18,10 +20,20 @@ const Index = () => {
   const navigate = useNavigate();
   const { transactions } = useTransactions();
   const { selectedInvestmentType, setSelectedInvestmentType } = useInvestmentPreferences();
+  const { monthlyIncome, setMonthlyIncome } = useMonthlyIncome();
+  const { 
+    incomeSources, 
+    addIncomeSource, 
+    updateIncomeSource, 
+    deleteIncomeSource, 
+    analyzeIncome,
+    getTotalExpectedIncome 
+  } = useIncomeSources();
   const [investmentInsight, setInvestmentInsight] = useState<InvestmentInsight | null>(null);
   const [loadingInsight, setLoadingInsight] = useState(false);
   const [serviceStatus, setServiceStatus] = useState({ enabled: false, notificationEnabled: false, accessibilityEnabled: false });
-  const [showPermissionDialog, setShowPermissionDialog] = useState(false);
+  const [showIncomeDialog, setShowIncomeDialog] = useState(false);
+  const [showIncomeSourcesDialog, setShowIncomeSourcesDialog] = useState(false);
 
   
   useEffect(() => {
@@ -29,7 +41,9 @@ const Index = () => {
       setLoadingInsight(true);
       try {
         const customType = selectedInvestmentType;
-        const insight = await aiService.generateInvestmentInsight(transactions, customType);
+        const incomeAnalysis = analyzeIncome(transactions);
+        const totalIncome = incomeAnalysis.totalIncome || monthlyIncome || getTotalExpectedIncome();
+        const insight = await aiService.generateInvestmentInsight(transactions, customType, totalIncome, incomeAnalysis);
         setInvestmentInsight(insight);
       } catch (error) {
         console.error('Error loading investment insight:', error);
@@ -44,13 +58,8 @@ const Index = () => {
     HybridBankNotifications.isEnabled().then(status => {
       setServiceStatus(status);
       
-      // Show permission dialog if no services are enabled and we have no transactions
-      if (!status.enabled && transactions.length === 0) {
-        // Wait a moment to let the UI settle
-        setTimeout(() => setShowPermissionDialog(true), 1000);
-      }
     });
-  }, [transactions, selectedInvestmentType]);
+  }, [transactions, selectedInvestmentType, monthlyIncome, incomeSources, analyzeIncome, getTotalExpectedIncome]);
   
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -70,13 +79,6 @@ const Index = () => {
   
   
 
-  const handlePermissionComplete = () => {
-    setShowPermissionDialog(false);
-    // Refresh service status
-    HybridBankNotifications.isEnabled().then(status => {
-      setServiceStatus(status);
-    });
-  };
 
   const handleInvestmentTypeSelect = (type: InvestmentType) => {
     setSelectedInvestmentType(type.id);
@@ -128,6 +130,31 @@ const Index = () => {
               <div className="text-left">
                 <p className="font-semibold text-lg">Ver Tabelas Detalhadas</p>
                 <p className="text-base text-muted-foreground">Transações do mês atual</p>
+              </div>
+            </div>
+          </Button>
+        </div>
+
+        {/* Income Sources Button */}
+        <div className="grid grid-cols-1 gap-4 mb-8">
+          <Button
+            onClick={() => setShowIncomeSourcesDialog(true)}
+            className="h-20 bg-gradient-card text-card-foreground hover:shadow-xl border border-border rounded-2xl transition-all duration-200"
+            variant="ghost"
+          >
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-primary/10 rounded-xl">
+                <DollarSign className="h-7 w-7 text-primary" />
+              </div>
+              <div className="text-left">
+                <p className="font-semibold text-lg">
+                  {incomeSources.length > 0 ? 'Gerenciar Fontes de Renda' : 'Configurar Fontes de Renda'}
+                </p>
+                <p className="text-base text-muted-foreground">
+                  {incomeSources.length > 0 
+                    ? `${incomeSources.length} fonte${incomeSources.length > 1 ? 's' : ''} configurada${incomeSources.length > 1 ? 's' : ''}`
+                    : 'Identifique suas diferentes rendas'}
+                </p>
               </div>
             </div>
           </Button>
@@ -259,6 +286,13 @@ const Index = () => {
           </Card>
         )}
       </div>
+
+      <MonthlyIncomeDialog
+        open={showIncomeDialog}
+        onOpenChange={setShowIncomeDialog}
+        currentIncome={monthlyIncome}
+        onIncomeSet={setMonthlyIncome}
+      />
     </div>
   );
 };

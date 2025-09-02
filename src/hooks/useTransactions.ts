@@ -11,6 +11,7 @@ interface StoredTransaction {
   date: string; // ISO string in storage
   contact: string;
   description?: string;
+  category?: 'Alimentação' | 'Laser' | 'Contas' | 'Transporte' | 'Outros';
 }
 
 const loadStored = (): Transaction[] => {
@@ -30,6 +31,46 @@ const loadStored = (): Transaction[] => {
 const persist = (txs: Transaction[]) => {
   const serializable = txs.map((t) => ({ ...t, date: t.date.toISOString() }));
   localStorage.setItem(STORAGE_KEY, JSON.stringify(serializable));
+};
+
+const parseTransactionString = (description: string | undefined): { amount?: number; merchant?: string; date?: Date } => {
+  if (!description) return {};
+  
+  // Parse the transaction format: "Sua compra no cartão final 6199 no valor de R$ 12,00, dia 29/08/2025 às 22:05, em PORTAL ADMINISTRADORA Joao Pessoa BRA, foi aprovada"
+  const amountMatch = description.match(/R\$\s*([\d,]+\.?\d*)/);
+  const merchantMatch = description.match(/em\s+([^,]+),?\s*foi aprovada/);
+  const dateMatch = description.match(/dia\s+(\d{2}\/\d{2}\/\d{4})\s+às\s+(\d{2}:\d{2})/);
+  
+  let parsedAmount: number | undefined;
+  if (amountMatch) {
+    const amountString = amountMatch[1].replace(',', '.');
+    parsedAmount = parseFloat(amountString);
+  }
+  
+  let parsedMerchant: string | undefined;
+  if (merchantMatch) {
+    parsedMerchant = merchantMatch[1].trim();
+  }
+  
+  let parsedDate: Date | undefined;
+  if (dateMatch) {
+    const [, dateStr, timeStr] = dateMatch;
+    const [day, month, year] = dateStr.split('/');
+    const [hour, minute] = timeStr.split(':');
+    parsedDate = new Date(
+      parseInt(year),
+      parseInt(month) - 1, // Month is 0-indexed
+      parseInt(day),
+      parseInt(hour),
+      parseInt(minute)
+    );
+  }
+  
+  return {
+    amount: parsedAmount,
+    merchant: parsedMerchant,
+    date: parsedDate
+  };
 };
 
 export const useTransactions = () => {
@@ -53,14 +94,17 @@ export const useTransactions = () => {
         const events = res?.events ?? [];
         if (events.length > 0) {
           setTransactions((prev) => {
-            const toAdd: Transaction[] = events.map((ev) => ({
-              id: ev.id,
-              type: ev.type,
-              amount: Math.round((ev.amount || 0) * 100) / 100,
-              date: new Date(ev.date || Date.now()),
-              contact: ev.contact || 'Desconhecido',
-              description: ev.description
-            }));
+            const toAdd: Transaction[] = events.map((ev) => {
+              const parsed = parseTransactionString(ev.description);
+              return {
+                id: ev.id,
+                type: ev.type,
+                amount: Math.round((parsed.amount || ev.amount || 0) * 100) / 100,
+                date: parsed.date || new Date(ev.date || Date.now()),
+                contact: parsed.merchant || ev.contact || 'Desconhecido',
+                description: ev.description
+              };
+            });
             // More efficient deduplication using Set
             const seenKeys = new Set<string>();
             const merged = [...toAdd, ...prev]
@@ -84,12 +128,13 @@ export const useTransactions = () => {
       // Live updates while app is running
       try {
         const listenerResult = await HybridBankNotifications.addListener('bankTransaction', (ev: BankTransactionEvent) => {
+          const parsed = parseTransactionString(ev.description);
           const newTx: Transaction = {
             id: ev.id,
             type: ev.type,
-            amount: Math.round((ev.amount || 0) * 100) / 100,
-            date: new Date(ev.date || Date.now()),
-            contact: ev.contact || 'Desconhecido',
+            amount: Math.round((parsed.amount || ev.amount || 0) * 100) / 100,
+            date: parsed.date || new Date(ev.date || Date.now()),
+            contact: parsed.merchant || ev.contact || 'Desconhecido',
             description: ev.description
           };
           setTransactions((prev) => {
@@ -248,6 +293,16 @@ export const useTransactions = () => {
     });
   };
 
+  const updateTransactionCategory = (id: string, category: Transaction['category']) => {
+    setTransactions(prev => {
+      const updated = prev.map(t => 
+        t.id === id ? { ...t, category } : t
+      );
+      persist(updated);
+      return updated;
+    });
+  };
+
   return {
     transactions,
     getRecentTransactions,
@@ -256,6 +311,7 @@ export const useTransactions = () => {
     getSentCurrentMonth,
     getMonthlyData,
     clearTransactions,
-    deleteTransaction
+    deleteTransaction,
+    updateTransactionCategory
   };
 };
