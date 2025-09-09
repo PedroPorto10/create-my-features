@@ -184,7 +184,7 @@ export const useTransactions = () => {
     return getCurrentMonthTransactions().filter(t => t.type === 'sent');
   };
   
-  const getMonthlyData = (): MonthlyData[] => {
+  const getMonthlyData = (incomeSources?: Array<any>, getMonthlyAmountFromSource?: (source: any) => number): MonthlyData[] => {
     const monthlyData: { [key: string]: MonthlyData } = {};
     
     // Create correct 5-month sequence: last 2 + current + next 2
@@ -211,6 +211,32 @@ export const useTransactions = () => {
         }
       }
     });
+
+    // Add expected income from income sources for current and future months
+    if (incomeSources && getMonthlyAmountFromSource) {
+      const currentMonthKey = now.toISOString().substring(0, 7);
+      const currentMonthIndex = Object.keys(monthlyData).sort().indexOf(currentMonthKey);
+      
+      if (currentMonthIndex >= 0) {
+        const activeIncomeSources = incomeSources.filter((source: any) => source.isActive);
+        const totalExpectedIncome = activeIncomeSources.reduce((sum: number, source: any) => 
+          sum + getMonthlyAmountFromSource(source), 0
+        );
+
+        // Add expected income to current and future months only if we have configured sources
+        if (totalExpectedIncome > 0) {
+          const sortedKeys = Object.keys(monthlyData).sort();
+          for (let i = currentMonthIndex; i < sortedKeys.length; i++) {
+            const key = sortedKeys[i];
+            // Only add expected income if there's little to no actual received income data
+            // This prevents double-counting when both transactions and income sources exist
+            if (monthlyData[key].received < totalExpectedIncome * 0.5) {
+              monthlyData[key].received = Math.max(monthlyData[key].received, totalExpectedIncome);
+            }
+          }
+        }
+      }
+    }
     
     // Get sorted data for trend calculation
     const sortedData = Object.keys(monthlyData)

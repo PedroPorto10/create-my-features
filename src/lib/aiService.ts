@@ -140,11 +140,11 @@ Responda APENAS no formato JSON:
       .filter(t => t.type === 'received')
       .reduce((sum, t) => sum + t.amount, 0);
 
-    // Use income analysis if available, otherwise manual income, then calculated income
-    const monthlyIncome = incomeAnalysis && incomeAnalysis.totalIncome > 0 
-      ? incomeAnalysis.totalIncome 
-      : (manualMonthlyIncome && manualMonthlyIncome > 0 
-        ? manualMonthlyIncome 
+    // Priority order: 1) Manual income input, 2) Income Analysis from sources, 3) Calculated from transactions
+    const monthlyIncome = manualMonthlyIncome && manualMonthlyIncome > 0 
+      ? manualMonthlyIncome 
+      : (incomeAnalysis && incomeAnalysis.totalIncome > 0 
+        ? incomeAnalysis.totalIncome 
         : calculatedMonthlyIncome);
 
     const monthlyExpenses = currentMonthTxs

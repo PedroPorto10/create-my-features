@@ -2,6 +2,7 @@ import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useTransactions } from '@/hooks/useTransactions';
+import { useIncomeSources } from '@/hooks/useIncomeSources';
 import { aiService, SpendingCategory } from '@/lib/aiService';
 import { useNavigate } from 'react-router-dom';
 import { useBackButton } from '@/hooks/useBackButton';
@@ -11,11 +12,12 @@ import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, Cart
 const Charts = () => {
   const navigate = useNavigate();
   const { getMonthlyData, transactions } = useTransactions();
+  const { incomeSources, getMonthlyAmountFromSource } = useIncomeSources();
   const [spendingCategories, setSpendingCategories] = useState<SpendingCategory[]>([]);
   const [loadingCategories, setLoadingCategories] = useState(false);
   const { handleBack } = useBackButton({ targetRoute: '/tables' });
   
-  const monthlyData = getMonthlyData();
+  const monthlyData = getMonthlyData(incomeSources, getMonthlyAmountFromSource);
 
   useEffect(() => {
     const loadSpendingCategories = async () => {
@@ -58,7 +60,7 @@ const Charts = () => {
   const receivedColor = '#16a34a'; // Green
   const sentColor = '#dc2626'; // Red
   
-  const CustomTooltip = ({ active, payload, label }: any) => {
+  const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?: Array<{ payload: { receivedValue: number; sentValue: number; isPrediction: boolean } }>; label?: string }) => {
     if (active && payload && payload.length) {
       const data = payload[0].payload;
       const isPrediction = data.isPrediction;
@@ -156,7 +158,7 @@ const Charts = () => {
                       stroke={receivedColor}
                       strokeWidth={2}
                       strokeDasharray="0"
-                      dot={(props: any) => {
+                      dot={(props: { cx: number; cy: number; payload: { isPrediction?: boolean } }) => {
                         const { cx, cy, payload } = props;
                         return (
                           <circle
@@ -179,7 +181,7 @@ const Charts = () => {
                       stroke={sentColor}
                       strokeWidth={2}
                       strokeDasharray="0"
-                      dot={(props: any) => {
+                      dot={(props: { cx: number; cy: number; payload: { isPrediction?: boolean } }) => {
                         const { cx, cy, payload } = props;
                         return (
                           <circle
@@ -257,7 +259,7 @@ const Charts = () => {
                       radius={[2, 2, 0, 0]}
                       fillOpacity={0.8}
                       name="Recebido"
-                      shape={(props: any) => {
+                      shape={(props: { fill: string; x: number; y: number; width: number; height: number; payload?: { isPrediction?: boolean } }) => {
                         const { fill, x, y, width, height, payload } = props;
                         const opacity = payload?.isPrediction ? 0.85 : 0.8;
                         return (
@@ -280,7 +282,7 @@ const Charts = () => {
                       radius={[2, 2, 0, 0]}
                       fillOpacity={0.8}
                       name="Enviado"
-                      shape={(props: any) => {
+                      shape={(props: { fill: string; x: number; y: number; width: number; height: number; payload?: { isPrediction?: boolean } }) => {
                         const { fill, x, y, width, height, payload } = props;
                         const opacity = payload?.isPrediction ? 0.85 : 0.8;
                         return (
@@ -369,7 +371,7 @@ const Charts = () => {
                         })}
                       </Pie>
                       <Tooltip 
-                        formatter={(value: any, name: string) => [
+                        formatter={(value: number, name: string) => [
                           formatCurrency(value),
                           'Total Gasto'
                         ]}

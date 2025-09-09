@@ -42,8 +42,14 @@ const Index = () => {
       try {
         const customType = selectedInvestmentType;
         const incomeAnalysis = analyzeIncome(transactions);
-        const totalIncome = incomeAnalysis.totalIncome || monthlyIncome || getTotalExpectedIncome();
-        const insight = await aiService.generateInvestmentInsight(transactions, customType, totalIncome, incomeAnalysis);
+        console.log('AI Insight Debug:', {
+          transactions: transactions.length,
+          monthlyIncome,
+          incomeAnalysis,
+          customType
+        });
+        const insight = await aiService.generateInvestmentInsight(transactions, customType, monthlyIncome, incomeAnalysis);
+        console.log('AI Insight Result:', insight);
         setInvestmentInsight(insight);
       } catch (error) {
         console.error('Error loading investment insight:', error);
